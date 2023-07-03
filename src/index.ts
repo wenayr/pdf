@@ -43,7 +43,7 @@ async function render_page(pageData:any) {
                 fontName: item.fontName,
                 width: item.width,
                 height: item.height
-            } satisfies tPFD
+            } as tPFD
         }
     }
     return obj
@@ -231,7 +231,7 @@ const api = fApi()
 function start() {
 
     const HOST = '0.0.0.0';
-    const PORT: number = +process.env.PORT
+    const PORT: number =  4051//+process.env.PORT
 
     const app = express();
 
