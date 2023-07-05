@@ -267,6 +267,7 @@ function start() {
         const data = req.body as {excel: string, name: string, excelSimple: string}
         let data2
         console.log(data)
+        console.log(JSON.stringify(req))
         try {
             data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple),}
             res.status(200)
