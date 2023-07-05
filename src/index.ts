@@ -248,7 +248,7 @@ function start() {
         excelSimple: Buffer  - файл шаблон эксель без ключей
       }
      */
-    app.post('/addTemplateExcel', async (req, res) => {
+    app.post('/addTemplateExcel2', async (req, res) => {
         const data = req.body as {excel: Buffer, name: string, excelSimple: Buffer}
         try {
             await api.addTemplateExcel(data)
@@ -259,6 +259,21 @@ function start() {
                 .json({status: e})
         }
     }, )
+    app.post('/addTemplateExcel', async (req, res) => {
+        const data = req.body as {excel: string, name: string, excelSimple: string}
+
+        const data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple),}
+
+        try {
+            await api.addTemplateExcel( data2)
+            res.status(200)
+                .json({status: "ok"})
+        } catch (e) {
+            res.status(404)
+                .json({status: e})
+        }
+    }, )
+
 
     /*
      точка dataToPDF
@@ -308,6 +323,28 @@ function start() {
     app.post('/getExcel', (req, res) => {
         res.status(200)
             .json(api.getExcel())
+    }, )
+
+    app.post('/status', async (req, res) => {
+        try {
+            const result =  "ok"
+            res.status(200)
+                .json({status: "ok", result})
+        } catch (e) {
+            res.status(404)
+                .json({status: e})
+        }
+    }, )
+
+    app.get('/statusGet', async (req, res) => {
+        try {
+            const result =  "ok"
+            res.status(200)
+                .json({status: "ok", result})
+        } catch (e) {
+            res.status(404)
+                .json({status: e})
+        }
     }, )
 
     server.listen(PORT, HOST, () => {
