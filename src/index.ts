@@ -178,11 +178,15 @@ function fApi() {
     /// addTemplateExcel    req: {excel: Buffer, name: string, excelSimple: Buffer}  res: {status:"ok"}
     const addTemplateExcel = async ({excelSimple, excel, name}: {excel: Buffer, name: string, excelSimple: Buffer}) => {
         const xcl = await ExcelToMapCell(excel)
+        console.log("3")
         mapExcelStyle[name] = xcl;
         /// надо конвертировать excel в пдф
         const resKey = await convertExcToPDF(xcl)
+        console.log("4")
         const res = await convertExcToPDF(excelSimple)
+        console.log("5")
         const pdfMapKey = await PDFToMapKey(resKey);
+        console.log("6")
 
         mapPDFKey[name] = resKey;
         mapPDF[name] = res;
@@ -261,8 +265,19 @@ function start() {
     }, )
     app.post('/addTemplateExcel', async (req, res) => {
         const data = req.body as {excel: string, name: string, excelSimple: string}
+        let data2
+        console.log(data)
+        try {
+            data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple),}
+            res.status(200)
+                .json({status: "ok"})
+        } catch (e) {
+            res.status(404)
+                .json({status: e})
+        }
 
-        const data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple),}
+
+        console.log("22")
 
         try {
             await api.addTemplateExcel( data2)
