@@ -1,6 +1,7 @@
 import * as ExcelJS from "exceljs";
 import {Workbook} from "exceljs";
 import * as fs from "fs";
+import * as bodyParser from "body-parser";
 import * as cors from 'cors';
 import * as path from "path";
 import * as fontkit from '@pdf-lib/fontkit';
@@ -8,7 +9,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 import * as express from 'express';
 // @ts-ignore
-import type {Buffer} from "exceljs/index";
+// import type {Buffer} from "exceljs/index";
 
 const pdf = require('pdf-parse');
 
@@ -125,13 +126,22 @@ async function convertExcToPDF(excel: Buffer) {
     return await libre.convertAsync(excel, '.pdf', undefined) as Buffer
 }
 
-async function createPDF(pdfSimple:PDFDocument, keyMap:  {[key: string]: tPFD}, dataKey: tDataKey[], excelKey: tCellInfo) {
+async function createPDF(_pdfSimple: Buffer, keyMap:  {[key: string]: tPFD}, dataKey: tDataKey[], excelKey: tCellInfo) {
+    const pdfSimple =  await PDFDocument.load(_pdfSimple)
+
     const length = pdfSimple.getPages().length
     const pdfDocCopy = await pdfSimple.copy()
-    const arr:number[] = (new Array(length)).map((v,i)=>i)
+    const arr:number[] = (new Array(length))
+    for (let i = 0; i < length; i++) {
+        arr[i]=i
+    }
+
+    // const data = pdfDocCopy.getPages() //
     const data = await pdfDocCopy.copyPages(pdfSimple,arr) //
+
     for (let arrElement of dataKey) {
         for (let i = 0; i < length; i++) {
+            const data = await pdfDocCopy.copyPages(pdfSimple,arr) //
             pdfDocCopy.addPage(data[i])
         }
     }
@@ -178,19 +188,22 @@ function fApi() {
     /// addTemplateExcel    req: {excel: Buffer, name: string, excelSimple: Buffer}  res: {status:"ok"}
     const addTemplateExcel = async ({excelSimple, excel, name}: {excel: Buffer, name: string, excelSimple: Buffer}) => {
         const xcl = await ExcelToMapCell(excel)
-        console.log("3")
         mapExcelStyle[name] = xcl;
         /// надо конвертировать excel в пдф
-        const resKey = await convertExcToPDF(xcl)
-        console.log("4")
+        const resKey = await convertExcToPDF(excel)
         const res = await convertExcToPDF(excelSimple)
-        console.log("5")
+
         const pdfMapKey = await PDFToMapKey(resKey);
-        console.log("6")
 
         mapPDFKey[name] = resKey;
         mapPDF[name] = res;
         mapPDFKeyMap[name] = pdfMapKey;
+
+        // для проверки сохранит промежуточные PDF
+        await fs.promises.writeFile("test.pdf", res)
+        await fs.promises.writeFile("testKey.pdf", resKey)
+
+
         return true;
     }
 
@@ -205,7 +218,7 @@ function fApi() {
 
     /// dataToPDF    req:  {[p: string]: string | Buffer} res: {status:"ok"}
     const dataToPDF = async (data: tRequest) => {
-
+        const arrPDF = []
         for (const [name, value] of Object.entries(data)) {
             // файл с метками
             const pdfKey = mapPDFKey[ name ]// открытие буфера пдф по имени
@@ -217,8 +230,14 @@ function fApi() {
             if (!pdf) throw "не создан чистый pdf для шаблона " + name
             if (!excelKey) throw "не создана карта ключей и стилей по ecelдля шаблона " + name
             const result = await createPDF(pdf, pdfMapKey, value, excelKey)
-            return result; // тут ошибка
+            return result;
+            // arrPDF.push(result)
+            // return result; // тут ошибка
         }
+        // return arrPDF
+        /*
+const pdfBytes = await pdfDoc.save();
+fs.writeFileSync('example.pdf', pdfBytes);*/
     }
     return {
         // добавить шаблон
@@ -232,14 +251,18 @@ function fApi() {
 
 const api = fApi()
 
+const HOST = '0.0.0.0';
+const PORT: number =  4051//+process.env.PORT
+
 function start() {
 
-    const HOST = '0.0.0.0';
-    const PORT: number =  4051//+process.env.PORT
-
     const app = express();
-
     const server = require('http').createServer(app)
+    app.use(cors({credentials: true, origin: true}))
+    app.use(bodyParser.urlencoded({extended: true}))
+    app.use(bodyParser.json())
+
+
 
     app.use(cors({credentials: true, origin: true}))
 
@@ -253,6 +276,7 @@ function start() {
       }
      */
     app.post('/addTemplateExcel2', async (req, res) => {
+
         const data = req.body as {excel: Buffer, name: string, excelSimple: Buffer}
         try {
             await api.addTemplateExcel(data)
@@ -265,24 +289,10 @@ function start() {
     }, )
     app.post('/addTemplateExcel', async (req, res) => {
         const data = req.body as {excel: string, name: string, excelSimple: string}
-        let data2
-        console.log(data)
         try {
-            console.log(req)
-            console.log(JSON.stringify(req))
-            data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple),}
-            res.status(200)
-                .json({status: "ok"})
-        } catch (e) {
-            res.status(404)
-                .json({status: e})
-        }
+            let data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple)}
+            await api.addTemplateExcel(data2)
 
-
-        console.log("22")
-
-        try {
-            await api.addTemplateExcel( data2)
             res.status(200)
                 .json({status: "ok"})
         } catch (e) {
@@ -324,12 +334,29 @@ function start() {
         }
         или ошибку если что-то не так
      */
-    app.post('/dataToPDF', async (req, res) => {
+    app.post('/dataToPDF2', async (req, res) => {
         const data = req.body as tRequest // {[p: string]:  {[p: string]: string | Buffer}[]}
         try {
             const result = await api.dataToPDF(data)
             res.status(200)
                 .json({status: "ok", result})
+        } catch (e) {
+            res.status(404)
+                .json({status: e})
+        }
+    }, )
+    app.post('/dataToPDF', async (req, res) => {
+        const data = req.body as tRequest // {[p: string]:  {[p: string]: string | Buffer}[]}
+        try {
+            console.time("11")
+            const result = await api.dataToPDF(data)
+            console.timeEnd("11")
+            console.log("55555")
+            const name = String(Date.now()) + ".pdf"
+            const arrBaits = await result.save()
+            await fs.promises.writeFile(name, arrBaits)
+            res.status(200)
+                .json({status: "ok", nameFile: name})
         } catch (e) {
             res.status(404)
                 .json({status: e})
@@ -353,7 +380,7 @@ function start() {
         }
     }, )
 
-    app.get('/statusGet', async (req, res) => {
+    app.get('/s', async (req, res) => {
         try {
             const result =  "ok"
             res.status(200)
@@ -366,6 +393,72 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
+        // test()
+
     })
 }
 start()
+
+
+async function test() {
+    const status = await fetch("http://localhost:" + PORT + "/s", )
+        .then(response => response.json())
+    console.log("status !! ",status)
+
+    const r = await fetch("http://localhost:" + PORT + "/addTemplateExcel", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            excel: "4pgruz.xlsx",
+            excelSimple: "4pgruzNo.xlsx",
+            name: "4g"
+        } as {excel: string, name: string, excelSimple: string})
+    })
+        .then(response => response.json())
+        .catch(e=>{
+            console.log("error ",e)
+        })
+    console.log("RRR",r);
+
+
+    const datum: tRequest = {}
+    const tempKey1 = "key_periodInfo"
+    for (let i = 0; i < 5; i++) {
+        (datum["4g"]??=[]).push({[tempKey1] : "test "+String(i)})
+    }
+    const r2 = await fetch("http://localhost:" + PORT + "/dataToPDF", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(datum)
+    })
+        .then(response => response.json())
+        .catch(e=>{
+            console.log("error ",e)
+        })
+    console.log("RRR",r2);
+    //
+    // const r2 = await fetch("http://localhost:" + PORT + "/addTemplateExcel", {
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json'
+    //     },
+    //     body: JSON.stringify({
+    //         excel: "4pgruz.xlsx",
+    //         excelSimple: "4pgruzNo.xlsx",
+    //         name: "4g"
+    //     } as {excel: string, name: string, excelSimple: string})
+    // })
+    //     .then(response => response.json())
+    //     .catch(e=>{
+    //         console.log("error ",e)
+    //     })
+    // console.log("RRR",r);
+
+
+    // api.dataToPDF(data)
+}
+
