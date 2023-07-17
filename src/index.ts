@@ -5,7 +5,7 @@ import * as bodyParser from "body-parser";
 import * as cors from 'cors';
 import * as path from "path";
 import * as fontkit from '@pdf-lib/fontkit';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import {PDFDocument, StandardFonts, rgb, PDFImage} from 'pdf-lib'
 
 import * as express from 'express';
 // @ts-ignore
@@ -174,6 +174,15 @@ async function createPDF(_pdfSimple: Buffer, keyMap:  {[key: string]: tPFD}, dat
             }
             else {
                 // тут код для вставки картинки
+                const pngImage = await pdfDocCopy.embedPng(fs.readFileSync('qr.png'))
+                pages[tt.pageIndex + i*length]
+                    .drawImage(pngImage ,{
+                        x: tt.transform[4],
+                        y: tt.transform[5],
+                        height: 50,
+                        width: 50
+                        }
+                        )
             }
         }
     }
@@ -259,10 +268,11 @@ function start() {
     const app = express();
     const server = require('http').createServer(app)
     app.use(cors({credentials: true, origin: true}))
-    app.use(bodyParser.urlencoded({extended: true}))
-    app.use(bodyParser.json())
+    // app.use(bodyParser.urlencoded({extended: true}))
+    // app.use(bodyParser.json())
 
-
+    app.use(bodyParser.json({limit: "50mb"}));
+    app.use(bodyParser.urlencoded({limit: "50mb", extended: true, parameterLimit:50000}));
 
     app.use(cors({credentials: true, origin: true}))
 
@@ -393,7 +403,7 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-        // test()
+        test()
 
     })
 }
@@ -425,9 +435,17 @@ async function test() {
 
     const datum: tRequest = {}
     const tempKey1 = "key_periodInfo"
-    for (let i = 0; i < 5; i++) {
-        (datum["4g"]??=[]).push({[tempKey1] : "test "+String(i)})
+    console.log("11")
+    for (let i = 0; i < 1; i++) {
+        const obj: tDataKey = {};
+        (datum["4g"]??=[]).push(obj)
+        obj[tempKey1] = "test1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "+String(i);
+        for (let j = 0; j <1; j++) {
+            obj[tempKey1 + j] = "test1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "+String(i);
+        }
     }
+
+    console.log("12")
     const r2 = await fetch("http://localhost:" + PORT + "/dataToPDF", {
         method: 'POST',
         headers: {
@@ -439,8 +457,9 @@ async function test() {
         .catch(e=>{
             console.log("error ",e)
         })
+    console.log(r2);
     console.log("RRR",r2);
-    //
+
     // const r2 = await fetch("http://localhost:" + PORT + "/addTemplateExcel", {
     //     method: 'POST',
     //     headers: {
