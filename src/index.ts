@@ -3,11 +3,11 @@ import {Workbook} from "exceljs";
 import * as fs from "fs";
 import * as bodyParser from "body-parser";
 import * as cors from 'cors';
-import * as path from "path";
-import * as fontkit from '@pdf-lib/fontkit';
-import {PDFDocument, StandardFonts, rgb, PDFImage} from 'pdf-lib'
 
 import * as express from 'express';
+import {test} from "./iTest";
+import {createPDF} from "./iCreatPDF";
+import {tCellInfo, tMapExcel, tMapPDF, tPFD, tRequest} from "./inteface";
 // @ts-ignore
 // import type {Buffer} from "exceljs/index";
 
@@ -15,19 +15,6 @@ const pdf = require('pdf-parse');
 
 const libre = require('libreoffice-convert');
 libre.convertAsync = require('util').promisify(libre.convert);
-
-// картинка qrcode 75 на 75
-
-
-
-type tPFD = {
-    transform: [sizeFont: number, t1:number, t2:number, t3:number, x: number, y: number],
-    pageIndex: number,
-    pageView: [x: number, y: number, w: number, h: number],
-    fontName: string,
-    width:number,
-    height:number
-}
 
 async function render_page(pageData:any) {
     let render_options = {
@@ -38,7 +25,10 @@ async function render_page(pageData:any) {
 
     const obj: { [key: string]: tPFD } = {}
     for (let item of textContent.items) {
-        if (item.str.includes('key_')) {
+        // надо удалить все переносы строк если такие есть
+        const str2 = item.str.replace(/\n/g, '')
+
+        if (str2.includes('key_')) {
             obj[item.str] = {
                 transform: item.transform,
                 pageIndex: pageData.pageIndex,
@@ -52,22 +42,6 @@ async function render_page(pageData:any) {
     return obj
 }
 
-type tCellInfo = {[key:string]: {
-        rangeX:[number,number],
-        rangeY:[number,number],
-        font: {name:string,style:'origin'|'bold'|'italic'|'boldItalic'},
-        alignment:{
-            vertical:'top'|'bottom'|'middle'|'distributed'|'justify',
-            horizontal: 'left'|'right'|'center'|'fill'|'justify'|'centerContinuous'|'distributed'
-        },
-        width?:number,
-        height?:number
-    }}
-
-
-type tExcel =  tCellInfo
-type tMapExcel = {[key: string]: tExcel}
-type tMapPDF = {[key: string]: Buffer}
 
 async function ExcelToMapCell(file: Buffer) {
     // чтение стиля из эксель
@@ -116,140 +90,13 @@ async function ExcelToMapCell(file: Buffer) {
     }
     return cellInfo
 }
-type tObjectImage = {
-    name: string,  x?: number, y?: number, width?: number, height?: number, pageIndex?: number
-}
-type tDataKey = {
-    [key: string]: string | tObjectImage
-}
-type tRequest = {
-    // тия шаблона
-    [nameTemplate: string]: tDataKey[]
-}
 
 
 async function convertExcToPDF(excel: Buffer) {
     return await libre.convertAsync(excel, '.pdf', undefined) as Buffer
 }
 
-async function createPDF(_pdfSimple: Buffer, keyMap:  {[key: string]: tPFD}, dataKey: tDataKey[], excelKey: tCellInfo) {
-    const pdfSimple =  await PDFDocument.load(_pdfSimple)
-        .catch((e)=>{
-            throw "PDFDocument.load error"
-        })
 
-    const length = pdfSimple.getPages().length
-    const pdfDocCopy = await pdfSimple.copy()
-    const arr:number[] = (new Array(length))
-    for (let i = 0; i < length; i++) {
-        arr[i]=i
-    }
-
-    // const data = pdfDocCopy.getPages() //
-    const data = await pdfDocCopy.copyPages(pdfSimple,arr) //
-
-    for (let arrElement of dataKey) {
-        for (let i = 0; i < length; i++) {
-            const data = await pdfDocCopy.copyPages(pdfSimple,arr) //
-            pdfDocCopy.addPage(data[i])
-        }
-    }
-
-    pdfDocCopy.registerFontkit(fontkit);
-    const ff = async () => {
-        return {
-            origin: await pdfDocCopy.embedFont(fs.readFileSync('./fonts/arial.ttf')),
-            italic: await pdfDocCopy.embedFont(fs.readFileSync('./fonts/ariali.ttf')),
-            bold: await pdfDocCopy.embedFont(fs.readFileSync('./fonts/arialbd.ttf')),
-            boldItalic: await pdfDocCopy.embedFont(fs.readFileSync('./fonts/arialbi.ttf')),
-        }
-    }
-
-    const customFont= await ff()
-        .catch((e)=>{
-            throw "fonts error"
-        })
-
-    const pages = pdfDocCopy.getPages()
-    // оптимизированная версия
-    // const objImage: {[key: string]: Buffer} = {}
-    // const arr2: Promise<any>[] = []
-    //
-    // const ff = async (obj: tObjectImage) => {
-    //     obj.bufferFile = (objImage[obj.name]??= await fs.promises.readFile(obj.name))
-    // }
-    // for (let i = 0; i < dataKey.length; i++) {
-    //     const data = dataKey[i]
-    //
-    //
-    //     for (const [key,value] of Object.entries(data)) {
-    //         if (typeof value == "object") {
-    //             value.name
-    //         }
-    //     }
-    // }
-
-
-    for (let i = 0; i < dataKey.length; i++) {
-        const data = dataKey[i]
-        const arr: Promise<any>[] = []
-
-        // for (const [key,value] of Object.entries(data)) {
-        //     if (typeof value == "object") {
-        //         value.name
-        //     }
-        // }
-
-        for (const [key,value] of Object.entries(data)) {
-            // console.log(name)
-            const tt = keyMap[key]
-            // if (!tt) continue;
-            if (typeof value == "string") {
-                if (!tt) continue;
-                try {
-                pages[tt.pageIndex + i*length]
-                    .drawText(value ,{
-                        x: tt.transform[4],
-                        y: tt.transform[5],
-                        size: tt.transform[0],
-                        font: customFont[excelKey[key]?.font.style ?? "origin"],
-                        lineHeight: tt.transform[0] * 1.15,
-                        maxWidth: excelKey[key]?.width ?? 100,
-
-                        // color:
-                    })
-                } catch (e) {
-                    throw "drawText error " + JSON.stringify(e)
-                }
-            }
-            else if (typeof value == "object" && value != null) {
-                // тут код для вставки картинки
-
-                // (async () => await pdfDocCopy.embedPng(await fs.promises.readFile('qr.png')))()
-                //     .then((e)=>{
-                //
-                //     })
-
-                const png = await fs.promises.readFile(value.name)
-
-                const pngImage = await pdfDocCopy.embedPng(png)
-                try {
-                    pages[(value.pageIndex ?? (tt?.pageIndex ?? 0)) + i*length]
-                        .drawImage(pngImage ,{
-                                x: value.x ?? tt?.transform[4],
-                                y: value.y ?? tt?.transform[5],
-                                height: value.height ?? 50,
-                                width: value.width ?? 50
-                            }
-                        )
-                } catch (e) {
-                    throw "drawImage error " + JSON.stringify(e)
-                }
-            }
-        }
-    }
-    return pdfDocCopy
-}
 
 function fApi() {
     const mapExcelStyle: tMapExcel = {}
@@ -263,7 +110,6 @@ function fApi() {
         /// надо конвертировать excel в пдф
         const resKey = await convertExcToPDF(excel)
         const res = await convertExcToPDF(excelSimple)
-
         const pdfMapKey = await PDFToMapKey(resKey);
 
         mapPDFKey[name] = resKey;
@@ -271,9 +117,8 @@ function fApi() {
         mapPDFKeyMap[name] = pdfMapKey;
 
         // для проверки сохранит промежуточные PDF
-        await fs.promises.writeFile("test.pdf", res)
-        await fs.promises.writeFile("testKey.pdf", resKey)
-
+        await fs.promises.writeFile("test"+name+".pdf", res)
+        await fs.promises.writeFile("testKey"+name+".pdf", resKey)
 
         return true;
     }
@@ -293,7 +138,7 @@ function fApi() {
         for (const [name, value] of Object.entries(data)) {
             // файл с метками
             const pdfKey = mapPDFKey[ name ]// открытие буфера пдф по имени
-            const pdf = mapPDF[ name ]// открытие буфера пдф по имени
+            const pdf = mapPDF[ name ]// открытие буфера пдф по имени3
             const excelKey = mapExcelStyle[ name ]
             const pdfMapKey = mapPDFKeyMap[ name ]
             if (!pdfMapKey) throw "не создан pdfMapKey с ключами для шаблона " + name
@@ -301,12 +146,7 @@ function fApi() {
             if (!pdf) throw "не создан чистый pdf для шаблона " + name
             if (!excelKey) throw "не создана карта ключей и стилей по excel для шаблона " + name
             const result = await createPDF(pdf, pdfMapKey, value, excelKey)
-                .catch((e)=>{
-                    throw e
-                })
             return result;
-            // arrPDF.push(result)
-            // return result; // тут ошибка
         }
         // return arrPDF
         /*
@@ -325,8 +165,8 @@ fs.writeFileSync('example.pdf', pdfBytes);*/
 
 const api = fApi()
 
-const HOST = '0.0.0.0';
-const PORT: number =  4051//+process.env.PORT
+export const HOST = '0.0.0.0';
+export const PORT: number =  4051//+process.env.PORT
 
 function start() {
 
@@ -476,88 +316,9 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-           // test()
-
+            test()
     })
 }
 start()
 
-
-async function test() {
-    const status = await fetch("http://localhost:" + PORT + "/s", )
-        .then(response => response.json())
-    console.log("status !! ",status)
-
-    const r = await fetch("http://localhost:" + PORT + "/addTemplateExcel", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            excel: "4pgruz.xlsx",
-            excelSimple: "4pgruzNo.xlsx",
-            name: "4g"
-        } as {excel: string, name: string, excelSimple: string})
-    })
-        .then(response => response.json())
-        .catch(e=>{
-            console.log("error ",e)
-        })
-    console.log("RRR",r);
-
-
-    const datum: tRequest = {}
-    const tempKey1 = "key_periodInfo"
-    console.log("11")
-
-    for (let i = 0; i < 1; i++) {
-        const obj: tDataKey = {};
-        (datum["4g"]??=[]).push(obj)
-        obj[tempKey1] = "test11111111111 11111111111111111111111 11111111111111111111111111 111111111111111111111111111111 11111111111111111111111111111 111111111111111111111111 1111111111111111111111 "+String(i);
-        obj["newImage"] = {
-            width: 300,
-            height: 300,
-            x: 400,
-            y: 400,
-            name: "qr.png"
-        }
-        for (let j = 0; j <1; j++) {
-            obj[tempKey1 + j] = "test1111111 11111111111111111 111111111111111111111 11111111111111 11111111111111111111111111111 1111111111111111111 11111111111111111111 1111111111111111111111111111111 1111111 "+String(i);
-        }
-    }
-
-    console.log("12")
-    const r2 = await fetch("http://localhost:" + PORT + "/dataToPDF", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(datum)
-    })
-        .then(response => response.json())
-        .catch(e=>{
-            console.log("error ",e)
-        })
-    console.log(r2);
-
-    // const r2 = await fetch("http://localhost:" + PORT + "/addTemplateExcel", {
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify({
-    //         excel: "4pgruz.xlsx",
-    //         excelSimple: "4pgruzNo.xlsx",
-    //         name: "4g"
-    //     } as {excel: string, name: string, excelSimple: string})
-    // })
-    //     .then(response => response.json())
-    //     .catch(e=>{
-    //         console.log("error ",e)
-    //     })
-    // console.log("RRR",r);
-
-
-    // api.dataToPDF(data)
-}
 

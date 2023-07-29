@@ -1,44 +1,40 @@
-
-
-type userDataOther = {
-    family: string,
-    name: string,
-    name2: string,
-    email: string,
-} | {
-    nameOrg: string
+export type tPFD = {
+    transform: [sizeFont: number, t1: number, t2: number, t3: number, x: number, y: number],
+    pageIndex: number,
+    pageView: [x: number, y: number, w: number, h: number],
+    fontName: string,
+    width: number,
+    height: number
 }
-type userDataMin = {
-    tel: number,
-    password: string,
-    tarifMode: "предоставление услуг"| "безпредоставления услуг"
+export type tCellInfo = {
+    [key: string]: {
+        rangeX: [number, number],
+        rangeY: [number, number],
+        font: { name: string, style: 'origin' | 'bold' | 'italic' | 'boldItalic' },
+        alignment: {
+            vertical: 'top' | 'bottom' | 'middle' | 'distributed' | 'justify',
+            horizontal: 'left' | 'right' | 'center' | 'fill' | 'justify' | 'centerContinuous' | 'distributed'
+        },
+        width?: number,
+        height?: number
+    }
 }
-type userData = userDataMin & userDataOther
-
-type tarif = {
-    countOrg: number,
-    countTS: number,
-    dateFrom: Date,
-    dateTo: Date,
-    stoimist: number, //
-    oplata: number //
+export type tExcel = tCellInfo
+export type tMapExcel = { [key: string]: tExcel }
+export type tMapPDF = { [key: string]: Buffer }
+export type tObjectImage = {
+    name: string, x?: number, y?: number, width?: number, height?: number, pageIndex?: number
 }
-type tPrava = {
-    create: boolean,
-    refactor: boolean,
-    del: boolean
+export type tDataKey = {
+    [key: string]: string | tObjectImage
 }
-type userPrava = {
-    createOrg: tPrava,
-    voditeli: tPrava,
-    users: tPrava,
-    sotrudniki: tPrava,
-    transport: tPrava,
-    dpetvoiDoc: tPrava,
+export type tRequest = {
+    // тия шаблона
+    [nameTemplate: string]: tDataKey[]
 }
-
-interface data {
-
+export type tFonts = {
+    origin: Buffer,
+    italic: Buffer,
+    bold: Buffer,
+    boldItalic: Buffer
 }
-
-
