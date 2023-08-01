@@ -7,7 +7,9 @@ import * as cors from 'cors';
 import * as express from 'express';
 import {test} from "./iTest";
 import {createPDF} from "./iCreatPDF";
-import {tCellInfo, tMapExcel, tMapPDF, tPFD, tRequest} from "./inteface";
+import {tCellInfo, tMapExcel, tMapPDF, tObjImage, tPFD, tRequest} from "./inteface";
+import {TF} from "wenay-common";
+import {PDFImage} from "pdf-lib";
 // @ts-ignore
 // import type {Buffer} from "exceljs/index";
 
@@ -50,11 +52,19 @@ async function ExcelToMapCell(file: Buffer) {
     const firstSheet = w.getWorksheet(1)
 
     const cellInfo: tCellInfo = {}
-
+    const tt = TF.M15
+    let a = false
     firstSheet.eachRow((row,rowNumber)=>{
         row.eachCell((cell:any, colNumber)=> {
             if(cell.value?.includes('key_')){
                 const style = cell.master ? cell.master.style : cell.style
+                //  {
+                //     a = true;
+                //     let rangeX= [cell.master?._column._number ?? cell._column._number,cell._column._number];
+                //     let rangeY= [cell.master?._row._number ?? cell._row._number,cell._row._number];
+                //     console.log(rangeX);
+                //     console.log(rangeY);
+                // }
                 cellInfo[cell.value]={
                     rangeX: [cell.master?._column._number ?? cell._column._number,cell._column._number],
                     rangeY: [cell.master?._row._number ?? cell._row._number,cell._row._number],
@@ -96,7 +106,17 @@ async function convertExcToPDF(excel: Buffer) {
     return await libre.convertAsync(excel, '.pdf', undefined) as Buffer
 }
 
+let _fonts: {origin: Buffer, italic: Buffer, bold: Buffer, boldItalic: Buffer} = undefined
 
+async function getFonts() {
+    if (!_fonts) _fonts = {
+        origin: await (fs.promises.readFile('../resource/fonts/arial.ttf')),
+        italic: await (fs.promises.readFile('../resource/fonts/ariali.ttf')),
+        bold: await (fs.promises.readFile('../resource/fonts/arialbd.ttf')),
+        boldItalic: await (fs.promises.readFile('../resource/fonts/arialbi.ttf')),
+    }
+    return _fonts
+}
 
 function fApi() {
     const mapExcelStyle: tMapExcel = {}
@@ -115,6 +135,7 @@ function fApi() {
         mapPDFKey[name] = resKey;
         mapPDF[name] = res;
         mapPDFKeyMap[name] = pdfMapKey;
+
 
         // для проверки сохранит промежуточные PDF
         await fs.promises.writeFile("test"+name+".pdf", res)
@@ -135,7 +156,22 @@ function fApi() {
     /// dataToPDF    req:  {[p: string]: string | Buffer} res: {status:"ok"}
     const dataToPDF = async (data: tRequest) => {
         const arrPDF = []
-        for (const [name, value] of Object.entries(data)) {
+        const fonts = await getFonts()
+            .catch((e)=>{
+                console.log("error")
+                throw " font " + e
+            })
+
+        const objImageB: tObjImage = {}
+        const ff = async (name: string) => objImageB[name] ??= await fs.promises.readFile("../resource/image/"+name)
+            .catch((e)=>{
+                console.log(" error ")
+                throw " cannot read " + name + e
+            })
+
+
+
+        for (const [name, dataKey] of Object.entries(data)) {
             // файл с метками
             const pdfKey = mapPDFKey[ name ]// открытие буфера пдф по имени
             const pdf = mapPDF[ name ]// открытие буфера пдф по имени3
@@ -145,7 +181,22 @@ function fApi() {
             if (!pdfKey) throw "не создан pdf с ключами для шаблона " + name
             if (!pdf) throw "не создан чистый pdf для шаблона " + name
             if (!excelKey) throw "не создана карта ключей и стилей по excel для шаблона " + name
-            const result = await createPDF(pdf, pdfMapKey, value, excelKey)
+
+            const objImage: tObjImage = {}
+            {
+                const arr2: Promise<any>[] = []
+                for (const data of dataKey)
+                    for (const value of Object.values(data))
+                        if (typeof value == "object" && value.name) arr2.push(ff(value.name).then(e=>objImage[value.name] = e))
+
+                await Promise.all(arr2)
+                    .catch((e)=>{
+                        console.log("error 555")
+                        throw " error promise all reading  " + e
+                    })
+            }
+
+            const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage)
             return result;
         }
         // return arrPDF
@@ -167,6 +218,8 @@ const api = fApi()
 
 export const HOST = '0.0.0.0';
 export const PORT: number =  4051//+process.env.PORT
+
+
 
 function start() {
 
@@ -205,7 +258,7 @@ function start() {
     app.post('/addTemplateExcel', async (req, res) => {
         const data = req.body as {excel: string, name: string, excelSimple: string}
         try {
-            let data2 = {name: data.name, excel: await fs.promises.readFile(data.excel), excelSimple: await fs.promises.readFile(data.excelSimple)}
+            let data2 = {name: data.name, excel: await fs.promises.readFile("../resource/excel/" + data.excel), excelSimple: await fs.promises.readFile("../resource/excel/" + data.excelSimple)}
             await api.addTemplateExcel(data2)
 
             res.status(200)
@@ -224,7 +277,18 @@ function start() {
      { имя шаблона 1 :
         [
             {
-             имя ключа 1 : значение или текст или обьект с полями  {name: string,  x?: number, y?: number, wight?: number, height?: number}
+             имя ключа 1 : значение или текст
+                или обьект с полями для картинки  {name: string,  x?: number, y?: number, wight?: number, height?: number}
+                или обьект с полями текста
+                    text: string,
+                    x?: number,
+                    y?: number,
+                    width?: number,
+                    height?: number,
+                    pageIndex?: number
+                    size?: number,
+                    font?: "origin" | "bold" | "boldItalic" | "italic",
+                    maxWidth?: number,
              имя ключа 2 : значение или текст или ...,
              },
             {
@@ -266,7 +330,7 @@ function start() {
             console.time("11")
             const result = await api.dataToPDF(data)
                 .catch((e)=>{
-                    throw "dataToPDFe" + e
+                    throw " dataToPDFe " + e
                 })
             console.timeEnd("11")
             const name = String(Date.now()) + ".pdf"
@@ -274,7 +338,7 @@ function start() {
                 .catch((e)=>{
                     throw "result.save"
                 })
-            await fs.promises.writeFile(name, arrBaits)
+            await fs.promises.writeFile("../resource/result/"+name, arrBaits)
                 .catch((e)=>{
                     throw "writeFile"
                 })

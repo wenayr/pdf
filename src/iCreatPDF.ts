@@ -2,20 +2,14 @@ import {PDFDocument, PDFImage} from "pdf-lib";
 import * as fontkit from "@pdf-lib/fontkit";
 import fs from "fs";
 
-import {tCellInfo, tDataKey, tPFD} from "./inteface";
+import {tCellInfo, tDataKey, tFonts, tObjectString, tObjImage, tPFD} from "./inteface";
 
-const fonts = {
-    origin: (fs.readFileSync('./fonts/arial.ttf')),
-    italic: (fs.readFileSync('./fonts/ariali.ttf')),
-    bold: (fs.readFileSync('./fonts/arialbd.ttf')),
-    boldItalic: (fs.readFileSync('./fonts/arialbi.ttf')),
-}
 
-export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD }, dataKey: tDataKey[], excelKey: tCellInfo) {
 
+export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD }, dataKey: tDataKey[], excelKey: tCellInfo, fonts: tFonts, objImage: tObjImage) {
     const pdfSimple = await PDFDocument.load(_pdfSimple)
         .catch((e) => {
-            throw "PDFDocument.load error"
+            throw " PDFDocument.load error"
         })
 
     const length = pdfSimple.getPages().length
@@ -37,36 +31,41 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
         bold: await pdfDocCopy.embedFont(fonts.bold),
         boldItalic: await pdfDocCopy.embedFont(fonts.boldItalic),
     })
+    type kCustomFont = keyof typeof customFont
 
 
     const pages = pdfDocCopy.getPages()
 
     // оптимизированная версия pngImage: PDFImage
-    const objImage: { [key: string]: PDFImage } = {}
-    const ff = async (name: string) => objImage[name] ??= await fs.promises.readFile(name).then(async e => await pdfDocCopy.embedPng(e))
+    const objImage2 : {[key: string]: PDFImage} = {}
+    for (const [k, v] of Object.entries(objImage))
+        objImage2[k] = await pdfDocCopy.embedPng(v)
 
-    {
-        const arr2: Promise<any>[] = []
-        for (const data of dataKey)
-            for (const value of Object.values(data))
-                if (typeof value == "object") arr2.push(ff(value.name))
-        await Promise.all(arr2)
-    }
 
     for (let i = 0; i < dataKey.length; i++) {
         const data = dataKey[i]
 
         for (const [key, value] of Object.entries(data)) {
             const tt = keyMap[key]
-            if (typeof value == "string") {
-                if (!tt) continue;
+            if (typeof value == "string" || (typeof value == "object" && value.text)) {
+                let text: string | undefined
+                let obj: tObjectString | undefined
+
+                if (typeof value == "object")  obj = value as tObjectString
+                else text = value
+                if (!tt && text) continue;
+                const objFont = obj?.font && customFont[obj?.font]
+                const horizontal = excelKey[key].alignment.horizontal
+                if (horizontal == "center" || horizontal == "centerContinuous") {
+
+                }
                 try {
                     pages[tt.pageIndex + i * length]
-                        .drawText(value, {
-                            x: tt.transform[4],
-                            y: tt.transform[5],
-                            size: tt.transform[0],
-                            font: customFont[excelKey[key]?.font.style ?? "origin"],
+                        .drawText(text ?? obj?.text ?? "none", {
+                            x: obj?.x ?? tt.transform[4],
+                            y: obj?.y ?? tt.transform[5],
+                            size: obj?.size ?? tt.transform[0],
+                            font: objFont ?? customFont[excelKey[key]?.font.style ?? "origin"],
                             lineHeight: tt.transform[0] * 1.15,
                             maxWidth: excelKey[key]?.width ?? 100,
                         })
@@ -76,7 +75,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
             } else if (typeof value == "object" && value != null) {
                 // тут код для вставки картинки
                 try {
-                    const img = objImage[value.name] //await ff(value.name)
+                    const img = objImage2[value.name] //await ff(value.name)
                     pages[(value.pageIndex ?? (tt?.pageIndex ?? 0)) + i * length]
                         .drawImage(img, {
                                 x: value.x ?? tt?.transform[4],
