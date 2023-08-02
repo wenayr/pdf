@@ -349,7 +349,7 @@ function start() {
                 .json({status: "ok", nameFile: name})
         } catch (e) {
             res.status(404)
-                .json({status: e})
+                .json({status: e + " " + JSON.stringify(data) })
         }
     }, )
     // вернет все ранее загруженные шаблоны - не требует параметров,
