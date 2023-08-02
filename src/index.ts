@@ -10,6 +10,7 @@ import {createPDF} from "./iCreatPDF";
 import {tCellInfo, tMapExcel, tMapPDF, tObjImage, tPFD, tRequest} from "./inteface";
 import {TF} from "wenay-common";
 import {PDFImage} from "pdf-lib";
+import {aExcel, aFont, aImage, aResult} from "./addres";
 // @ts-ignore
 // import type {Buffer} from "exceljs/index";
 
@@ -110,10 +111,10 @@ let _fonts: {origin: Buffer, italic: Buffer, bold: Buffer, boldItalic: Buffer} =
 
 async function getFonts() {
     if (!_fonts) _fonts = {
-        origin: await (fs.promises.readFile('../resource/fonts/arial.ttf')),
-        italic: await (fs.promises.readFile('../resource/fonts/ariali.ttf')),
-        bold: await (fs.promises.readFile('../resource/fonts/arialbd.ttf')),
-        boldItalic: await (fs.promises.readFile('../resource/fonts/arialbi.ttf')),
+        origin: await (fs.promises.readFile(aFont + 'arial.ttf')),
+        italic: await (fs.promises.readFile(aFont + 'ariali.ttf')),
+        bold: await (fs.promises.readFile(aFont + 'arialbd.ttf')),
+        boldItalic: await (fs.promises.readFile(aFont + 'arialbi.ttf')),
     }
     return _fonts
 }
@@ -138,8 +139,8 @@ function fApi() {
 
 
         // для проверки сохранит промежуточные PDF
-        await fs.promises.writeFile("test"+name+".pdf", res)
-        await fs.promises.writeFile("testKey"+name+".pdf", resKey)
+        // await fs.promises.writeFile("test"+name+".pdf", res)
+        // await fs.promises.writeFile("testKey"+name+".pdf", resKey)
 
         return true;
     }
@@ -163,7 +164,7 @@ function fApi() {
             })
 
         const objImageB: tObjImage = {}
-        const ff = async (name: string) => objImageB[name] ??= await fs.promises.readFile("../resource/image/"+name)
+        const ff = async (name: string) => objImageB[name] ??= await fs.promises.readFile(aImage + name)
             .catch((e)=>{
                 console.log(" error ")
                 throw " cannot read " + name + e
@@ -196,7 +197,7 @@ function fApi() {
                     })
             }
 
-            const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage)
+            const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage, name)
             return result;
         }
         // return arrPDF
@@ -258,7 +259,8 @@ function start() {
     app.post('/addTemplateExcel', async (req, res) => {
         const data = req.body as {excel: string, name: string, excelSimple: string}
         try {
-            let data2 = {name: data.name, excel: await fs.promises.readFile("../resource/excel/" + data.excel), excelSimple: await fs.promises.readFile("../resource/excel/" + data.excelSimple)}
+            console.log("add excel " + data.excel + " " + data.name)
+            let data2 = {name: data.name, excel: await fs.promises.readFile(aExcel + data.excel), excelSimple: await fs.promises.readFile(aExcel + data.excelSimple)}
             await api.addTemplateExcel(data2)
 
             res.status(200)
@@ -327,6 +329,7 @@ function start() {
     app.post('/dataToPDF', async (req, res) => {
         const data = req.body as tRequest // {[p: string]:  {[p: string]: string | Buffer}[]}
         try {
+            console.log("dataToPDF")
             console.time("11")
             const result = await api.dataToPDF(data)
                 .catch((e)=>{
@@ -338,7 +341,7 @@ function start() {
                 .catch((e)=>{
                     throw "result.save"
                 })
-            await fs.promises.writeFile("../resource/result/"+name, arrBaits)
+            await fs.promises.writeFile(aResult + name, arrBaits)
                 .catch((e)=>{
                     throw "writeFile"
                 })
@@ -346,7 +349,7 @@ function start() {
                 .json({status: "ok", nameFile: name})
         } catch (e) {
             res.status(404)
-                .json({status: e})
+                .json({status: e + " " + JSON.stringify(data) })
         }
     }, )
     // вернет все ранее загруженные шаблоны - не требует параметров,
@@ -380,7 +383,7 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-             test()
+            //test()
     })
 }
 start()

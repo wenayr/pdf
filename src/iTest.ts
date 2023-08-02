@@ -12,8 +12,8 @@ export async function test() {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            excel: "4pgruz.xlsx",
-            excelSimple: "4pgruzNo.xlsx",
+            excel: "test4pgruz.xlsx",
+            excelSimple: "test4pgruzNo.xlsx",
             name: "4g"
         } as { excel: string, name: string, excelSimple: string })
     })
@@ -40,7 +40,7 @@ export async function test() {
             y: 400,
             name: "qr.png"
         }
-        for (let j = 0; j < 500; j++) {
+        for (let j = 0; j < 5; j++) {
             obj["newImage" + j] = {
                 width: 80,
                 height: 80,
