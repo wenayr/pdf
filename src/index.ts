@@ -197,7 +197,7 @@ function fApi() {
                     })
             }
 
-            const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage)
+            const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage, name)
             return result;
         }
         // return arrPDF

@@ -5,7 +5,7 @@ import fs from "fs";
 import {tCellInfo, tDataKey, tFonts, tObjectString, tObjImage, tPFD} from "./inteface";
 
 
-export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD }, dataKey: tDataKey[], excelKey: tCellInfo, fonts: tFonts, objImage: tObjImage) {
+export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD }, dataKey: tDataKey[], excelKey: tCellInfo, fonts: tFonts, objImage: tObjImage, nameTmpl: string) {
     const pdfSimple = await PDFDocument.load(_pdfSimple)
         .catch((e) => {
             throw " PDFDocument.load error"
@@ -46,9 +46,24 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
 
         for (const [key, value] of Object.entries(data)) {
             const tt = keyMap[key]
+            if (value == null) continue;
             if (typeof value == "string" || (typeof value == "object" && value.text)) {
                 let text: string | undefined
                 let obj: tObjectString | undefined
+
+
+                let widthCell = 100;
+                if (excelKey[key]?.width > 0) {
+                    if (nameTmpl == "madi.xlsx" || nameTmpl == "form3.xlsx") {
+                        widthCell = excelKey[key]?.width * 2.0;
+                    } else if (nameTmpl == "form4.xlsx") {
+                        widthCell = excelKey[key]?.width * 2.2;
+                    }
+                    else {
+                        widthCell = excelKey[key]?.width;
+                    }
+                }
+
 
                 if (typeof value == "object")  obj = value as tObjectString
                 else text = value
@@ -66,7 +81,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                             size: obj?.size ?? tt.transform[0],
                             font: objFont ?? customFont[excelKey[key]?.font.style ?? "origin"],
                             lineHeight: tt.transform[0] * 1.15,
-                            maxWidth: excelKey[key]?.width ?? 100,
+                            maxWidth: widthCell ?? excelKey[key]?.width ?? 100,
                         })
                 } catch (e) {
                     throw "drawText error " + JSON.stringify(e)
