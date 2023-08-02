@@ -380,7 +380,7 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-            test()
+            //test()
     })
 }
 start()
