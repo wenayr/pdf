@@ -259,6 +259,7 @@ function start() {
     app.post('/addTemplateExcel', async (req, res) => {
         const data = req.body as {excel: string, name: string, excelSimple: string}
         try {
+            console.log("add excel " + data.excel + " " + data.name)
             let data2 = {name: data.name, excel: await fs.promises.readFile(aExcel + data.excel), excelSimple: await fs.promises.readFile(aExcel + data.excelSimple)}
             await api.addTemplateExcel(data2)
 
@@ -328,6 +329,7 @@ function start() {
     app.post('/dataToPDF', async (req, res) => {
         const data = req.body as tRequest // {[p: string]:  {[p: string]: string | Buffer}[]}
         try {
+            console.log("dataToPDF")
             console.time("11")
             const result = await api.dataToPDF(data)
                 .catch((e)=>{
