@@ -97,7 +97,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 // тут код для вставки картинки
                 try {
                     const img = objImage2[value.name] //await ff(value.name)
-                    pages[(value.pageIndex ?? (tt?.pageIndex ?? 0)) + i * length]
+                    pages[(value.pageIndex ?? (tt?.pageIndex ?? 0)) + 0 ] //  i * length
                         .drawImage(img, {
                                 x: value.x ?? tt?.transform[4],
                                 y: value.y ?? tt?.transform[5],
