@@ -84,14 +84,13 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                             maxWidth: widthCell ?? excelKey[key]?.width ?? 100,
                         })
                 } catch (e) {
-                    throw "drawText error " + (text ?? obj?.text ?? "none") + " " +  JSON.stringify({
-                        x: obj?.x ?? tt?.transform[4],
-                        y: obj?.y ?? tt?.transform[5],
-                        size: obj?.size ?? tt?.transform[0],
-                        font: objFont ?? customFont[excelKey[key]?.font.style ?? "origin"],
-                        lineHeight: tt?.transform[0] * 1.15,
-                        maxWidth: widthCell ?? excelKey[key]?.width ?? 100,
-                    })
+                    throw "drawText error " + (text ?? obj?.text ?? "none") + " " +
+                        +" x: "+             (obj?.x ?? tt?.transform[4])    +
+                        +" y: "+             (obj?.y ?? tt?.transform[5])    +
+                        +" size: "+          (    obj?.size ?? tt?.transform[0]) +
+                        +" font: "+          (    objFont ?? customFont[excelKey[key]?.font.style ?? "origin"])  +
+                        +" lineHeight: "+    (            tt?.transform[0] * 1.15)   +
+                        +" maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100)
                 }
             } else if (typeof value == "object") {
                 // тут код для вставки картинки
@@ -115,3 +114,4 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
     }
     return pdfDocCopy
 }
+
