@@ -351,6 +351,7 @@ function start() {
                 .catch((e)=>{
                     throw "writeFile"
                 })
+            console.log("status: \"ok\", nameFile: " + name + " address: " + aResult + name)
             res.status(200)
                 .json({status: "ok", nameFile: name})
         } catch (e) {
