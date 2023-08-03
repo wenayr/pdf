@@ -355,7 +355,7 @@ function start() {
                 .json({status: "ok", nameFile: name})
         } catch (e) {
             res.status(404)
-                .json({status: e + " " + JSON.stringify(data) })
+                .json({status: e + " " }) // ООО «СИСТЕМА»\nОГРН(ОГРНИП) 5177746289804\nИНН 7734409110 NaN26.206NaN560.403NaN6.49NaN[object Object]NaN7.4635NaN164
         }
     }, )
     // вернет все ранее загруженные шаблоны - не требует параметров,
