@@ -86,7 +86,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 } catch (e) {
                     throw "drawText error " + JSON.stringify(e)
                 }
-            } else if (typeof value == "object" && value != null) {
+            } else if (typeof value == "object") {
                 // тут код для вставки картинки
                 try {
                     const img = objImage2[value.name] //await ff(value.name)

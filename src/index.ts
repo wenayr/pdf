@@ -156,7 +156,6 @@ function fApi() {
 
     /// dataToPDF    req:  {[p: string]: string | Buffer} res: {status:"ok"}
     const dataToPDF = async (data: tRequest) => {
-        const arrPDF = []
         const fonts = await getFonts()
             .catch((e)=>{
                 console.log("error")
@@ -188,7 +187,7 @@ function fApi() {
                 const arr2: Promise<any>[] = []
                 for (const data of dataKey)
                     for (const value of Object.values(data))
-                        if (typeof value == "object" && value.name) arr2.push(ff(value.name).then(e=>objImage[value.name] = e))
+                        if (typeof value == "object" && value!=null && value.name && value.name!=null) arr2.push(ff(value.name).then(e=>objImage[value.name] = e))
 
                 await Promise.all(arr2)
                     .catch((e)=>{
@@ -198,6 +197,9 @@ function fApi() {
             }
 
             const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage, name)
+                .catch((e)=>{
+                    throw " createPDF " + e
+                })
             return result;
         }
         // return arrPDF
@@ -260,7 +262,11 @@ function start() {
         const data = req.body as {excel: string, name: string, excelSimple: string}
         try {
             console.log("add excel " + data.excel + " " + data.name)
-            let data2 = {name: data.name, excel: await fs.promises.readFile(aExcel + data.excel), excelSimple: await fs.promises.readFile(aExcel + data.excelSimple)}
+            let data2 = {
+                name: data.name,
+                excel: await fs.promises.readFile(aExcel + data.excel),
+                excelSimple: await fs.promises.readFile(aExcel + data.excelSimple)
+            }
             await api.addTemplateExcel(data2)
 
             res.status(200)
