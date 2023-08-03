@@ -68,7 +68,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 if (typeof value == "object")  obj = value as tObjectString
                 else text = value
                 if (!tt && text) continue;
-                const objFont = obj?.font && customFont[obj?.font]
+                const objFont = obj?.font ? customFont[obj?.font] : customFont[excelKey[key]?.font.style ?? "origin"]
                 const horizontal = excelKey[key].alignment.horizontal
                 if (horizontal == "center" || horizontal == "centerContinuous") {
 
@@ -79,18 +79,19 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                             x: obj?.x ?? tt.transform[4],
                             y: obj?.y ?? tt.transform[5],
                             size: obj?.size ?? tt.transform[0],
-                            font: objFont ?? customFont[excelKey[key]?.font.style ?? "origin"],
+                            font: objFont,
                             lineHeight: tt.transform[0] * 1.15,
                             maxWidth: widthCell ?? excelKey[key]?.width ?? 100,
                         })
                 } catch (e) {
                     throw (" drawText error " + (text ?? obj?.text ?? "none") + " "
-                        +"\m x: "+             (obj?.x ?? tt?.transform[4])
-                        +"\m y: "+             (obj?.y ?? tt?.transform[5])
-                        +"\m size: "+          (    obj?.size ?? tt?.transform[0])
-                        +"\m font: "+          (    objFont ?? customFont[excelKey[key]?.font.style ?? "origin"])
-                        +"\m lineHeight: "+    (            tt?.transform[0] * 1.15)
-                        +"\m maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100))
+                        +"\n i: "+             (tt.pageIndex + i * length)
+                        +"\n x: "+             (obj?.x ?? tt?.transform[4])
+                        +"\n y: "+             (obj?.y ?? tt?.transform[5])
+                        +"\n size: "+          (    obj?.size ?? tt?.transform[0])
+                        +"\n font: "+          (    objFont)
+                        +"\n lineHeight: "+    (            tt?.transform[0] * 1.15)
+                        +"\n maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100))
                 }
             } else if (typeof value == "object") {
                 // тут код для вставки картинки
