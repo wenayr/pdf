@@ -84,13 +84,13 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                             maxWidth: widthCell ?? excelKey[key]?.width ?? 100,
                         })
                 } catch (e) {
-                    throw " drawText error " + (text ?? obj?.text ?? "none") + " " +
-                        +"\m x: "+             (obj?.x ?? tt?.transform[4])    +
-                        +"\m y: "+             (obj?.y ?? tt?.transform[5])    +
-                        +"\m size: "+          (    obj?.size ?? tt?.transform[0]) +
-                        +"\m font: "+          (    objFont ?? customFont[excelKey[key]?.font.style ?? "origin"])  +
-                        +"\m lineHeight: "+    (            tt?.transform[0] * 1.15)   +
-                        +"\m maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100)
+                    throw (" drawText error " + (text ?? obj?.text ?? "none") + " "
+                        +"\m x: "+             (obj?.x ?? tt?.transform[4])
+                        +"\m y: "+             (obj?.y ?? tt?.transform[5])
+                        +"\m size: "+          (    obj?.size ?? tt?.transform[0])
+                        +"\m font: "+          (    objFont ?? customFont[excelKey[key]?.font.style ?? "origin"])
+                        +"\m lineHeight: "+    (            tt?.transform[0] * 1.15)
+                        +"\m maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100))
                 }
             } else if (typeof value == "object") {
                 // тут код для вставки картинки
