@@ -19,7 +19,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
 
     for (let arrElement of dataKey) {
         const data = await pdfDocCopy.copyPages(pdfSimple, arr)
-        for (let i = 1; i < length; i++)
+        for (let i = 0; i < length; i++) //   for (let i = 1; i < length; i++)
             pdfDocCopy.addPage(data[i])
     }
 
@@ -40,10 +40,9 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
     for (const [k, v] of Object.entries(objImage))
         objImage2[k] = await pdfDocCopy.embedPng(v)
 
-
+    let index = 0
     for (let i = 0; i < dataKey.length; i++) {
         const data = dataKey[i]
-
         for (const [key, value] of Object.entries(data)) {
             const tt = keyMap[key]
             if (value == null) continue;
@@ -74,7 +73,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
 
                 }
                 try {
-                    pages[tt.pageIndex + 0] // i * length
+                    pages[tt.pageIndex + i * length] // i * length
                         .drawText(text ?? obj?.text ?? "none", {
                             x: obj?.x ?? tt.transform[4],
                             y: obj?.y ?? tt.transform[5],
@@ -97,7 +96,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 // тут код для вставки картинки
                 try {
                     const img = objImage2[value.name] //await ff(value.name)
-                    pages[(value.pageIndex ?? (tt?.pageIndex ?? 0))  ] //  i * length
+                    pages[(value.pageIndex ?? (tt?.pageIndex ?? 0)) + i * length ] //  i * length
                         .drawImage(img, {
                                 x: value.x ?? tt?.transform[4],
                                 y: value.y ?? tt?.transform[5],
