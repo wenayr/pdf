@@ -74,7 +74,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
 
                 }
                 try {
-                    pages[tt.pageIndex + i * length]
+                    pages[tt.pageIndex + 0] // i * length
                         .drawText(text ?? obj?.text ?? "none", {
                             x: obj?.x ?? tt.transform[4],
                             y: obj?.y ?? tt.transform[5],
@@ -85,13 +85,13 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                         })
                 } catch (e) {
                     throw (" drawText error " + (text ?? obj?.text ?? "none") + " "
-                        +"\n i: "+             (tt.pageIndex + i * length)
-                        +"\n x: "+             (obj?.x ?? tt?.transform[4])
-                        +"\n y: "+             (obj?.y ?? tt?.transform[5])
-                        +"\n size: "+          (    obj?.size ?? tt?.transform[0])
-                        +"\n font: "+          (    objFont)
-                        +"\n lineHeight: "+    (            tt?.transform[0] * 1.15)
-                        +"\n maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100))
+                        +"   i: "+             (tt.pageIndex + i * length)
+                        +"   x: "+             (obj?.x ?? tt?.transform[4])
+                        +"   y: "+             (obj?.y ?? tt?.transform[5])
+                        +"   size: "+          (    obj?.size ?? tt?.transform[0])
+                        +"   font: "+          (    objFont)
+                        +"   lineHeight: "+    (            tt?.transform[0] * 1.15)
+                        +"   maxWidth: "+      (        widthCell ?? excelKey[key]?.width ?? 100))
                 }
             } else if (typeof value == "object") {
                 // тут код для вставки картинки
