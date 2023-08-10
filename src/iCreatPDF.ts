@@ -72,7 +72,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 const horizontal = excelKey[key].alignment.horizontal
                 let x: number | undefined = undefined
                 if (horizontal == "center" || horizontal == "centerContinuous") {
-                    x = x + 0.5 * widthCell
+                    x = (obj?.x ?? tt.transform[4] )+ x + 0.5 * widthCell
                 }
                 try {
                     pages[tt.pageIndex + i * length] // i * length
@@ -87,7 +87,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 } catch (e) {
                     throw (" drawText error " + (text ?? obj?.text ?? "none") + " "
                         +"   i: "+             (tt.pageIndex + i * length)
-                        +"   x: "+             (obj?.x ?? tt?.transform[4])
+                        +"   x: "+             (x ?? obj?.x ?? tt?.transform[4])
                         +"   y: "+             (obj?.y ?? tt?.transform[5])
                         +"   size: "+          (    obj?.size ?? tt?.transform[0])
                         +"   font: "+          (    objFont)
