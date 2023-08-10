@@ -10,6 +10,7 @@ export type tPFD = {
 }
 export type tCellInfo = {
     [key: string]: {
+        left: number,
         rangeX: [number, number],
         rangeY: [number, number],
         font: { name: string, style: 'origin' | 'bold' | 'italic' | 'boldItalic' },

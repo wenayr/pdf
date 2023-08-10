@@ -28,10 +28,10 @@ export async function test() {
     const tempKey1 = "key_periodInfo"
     console.log("11")
 
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 300; i++) {
         const obj: tDataKey = {};
         (datum["4g"] ??= []).push(obj)
-        obj[tempKey1] = "test11111111111 11111111111111111111111 11111111111111111111111111 111111111111111111111111111111 11111111111111111111111111111 111111111111111111111111 1111111111111111111111 " + String(i);
+        obj[tempKey1] = "test11111111111 11111111111111111111111 11111111111111111111111111  " + String(i);
 
         obj["newImage"] = {
             width: 80,
@@ -40,18 +40,18 @@ export async function test() {
             y: 400,
             name: "qr.png"
         }
-        for (let j = 0; j < 5; j++) {
-            obj["newImage" + j] = {
-                width: 80,
-                height: 80,
-                x: 400 + j,
-                y: 400 + j,
-                name: "qr.png"
-            }
-        }
+        // for (let j = 0; j < 5; j++) {
+        //     obj["newImage" + j] = {
+        //         width: 80,
+        //         height: 80,
+        //         x: 400 + j,
+        //         y: 400 + j,
+        //         name: "qr.png"
+        //     }
+        // }
 
         for (let j = 0; j < 1; j++) {
-            obj[tempKey1 + j] = "test1111111 11111111111111111 111111111111111111111 11111111111111 11111111111111111111111111111 1111111111111111111 11111111111111111111 1111111111111111111111111111111 1111111 " + String(i);
+            obj[tempKey1 + j] = "test1111111 11111111111111111 111111111111111111111 11111111111111  " + String(i);
         }
     }
 

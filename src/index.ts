@@ -66,7 +66,12 @@ async function ExcelToMapCell(file: Buffer) {
                 //     console.log(rangeX);
                 //     console.log(rangeY);
                 // }
+
+                // console.log(row.getCell(cell._column._number));
+                //
+                // console.log("!!!!!");
                 cellInfo[cell.value]={
+                    left: 0,
                     rangeX: [cell.master?._column._number ?? cell._column._number,cell._column._number],
                     rangeY: [cell.master?._row._number ?? cell._row._number,cell._row._number],
                     font: {
@@ -86,6 +91,14 @@ async function ExcelToMapCell(file: Buffer) {
     for(const [key,value] of Object.entries(cellInfo)){
         let w = 0
         let h = 0
+
+        let xx = 0
+        for(let i=1;i<=value.rangeX[0];i++){
+            const x:any = row1.getCell(i)
+            xx += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
+            // console.log(x._column)
+        }
+
         for(let i=value.rangeX[0];i<=value.rangeX[1];i++){
             const x:any = row1.getCell(i)
             w += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
@@ -96,6 +109,8 @@ async function ExcelToMapCell(file: Buffer) {
             const x:any = firstSheet.getRow(i)
             h += x.height;
         }
+        cellInfo[key].left=xx
+        console.log("left "+ xx)
         cellInfo[key].width=w
         cellInfo[key].height=h
     }
@@ -341,7 +356,6 @@ function start() {
                 .catch((e)=>{
                     throw " dataToPDFe " + e
                 })
-            console.timeEnd("11")
             const name = String(Date.now()) + ".pdf"
             const arrBaits = await result.save()
                 .catch((e)=>{
@@ -351,6 +365,7 @@ function start() {
                 .catch((e)=>{
                     throw "writeFile"
                 })
+            console.timeEnd("11")
             console.log("status: \"ok\", nameFile: " + name + " address: " + aResult + name)
             res.status(200)
                 .json({status: "ok", nameFile: name})
@@ -390,7 +405,7 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-            //test()
+           //  test()
     })
 }
 start()
