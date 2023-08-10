@@ -77,7 +77,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 try {
                     pages[tt.pageIndex + i * length] // i * length
                         .drawText(text ?? obj?.text ?? "none", {
-                            x: x ?? obj?.x ?? tt.transform[4],
+                            x:  obj?.x ?? tt.transform[4], // x ??
                             y: obj?.y ?? tt.transform[5],
                             size: obj?.size ?? tt.transform[0],
                             font: objFont,
