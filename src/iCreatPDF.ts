@@ -26,9 +26,9 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
     pdfDocCopy.registerFontkit(fontkit);
     const customFont = ({
         origin: await pdfDocCopy.embedFont(fonts.origin),
-        italic: await pdfDocCopy.embedFont(fonts.italic),
+        italic: await pdfDocCopy.embedFont(fonts.origin),//await pdfDocCopy.embedFont(fonts.italic),
         bold: await pdfDocCopy.embedFont(fonts.bold),
-        boldItalic: await pdfDocCopy.embedFont(fonts.boldItalic),
+        boldItalic:  await pdfDocCopy.embedFont(fonts.bold),//await pdfDocCopy.embedFont(fonts.boldItalic),
     })
     type kCustomFont = keyof typeof customFont
 
