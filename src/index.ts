@@ -32,7 +32,6 @@ async function render_page(pageData:any) {
         const str2 = item.str.replace(/\n/g, '')
 
         if (str2.includes('key_')) {
-            console.log(pageData.pageIndex);
             obj[item.str] = {
                 transform: item.transform,
                 pageIndex: pageData.pageIndex,
@@ -105,7 +104,7 @@ async function ExcelToMapCell(file: Buffer) {
             w += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
             // console.log(x._column)
         }
-        console.log(w)
+        // console.log(w)
         for(let i=value.rangeY[0];i<=value.rangeY[1];i++){
             const x:any = firstSheet.getRow(i)
             h += x.height;
@@ -161,10 +160,20 @@ function fApi() {
 
     const PDFToMapKey = (pdfBuffer: Buffer) => {
         return new Promise<{[p: string]: tPFD}>((resolve, reject)=>{
-            pdf(pdfBuffer, {
-                pagerender: async (data: any )=>{
-                    resolve(await render_page(data))
-                }})
+            let numpages = 0
+            // =) костыль, по другому непонятно как заранее узнать количество страниц
+            pdf(pdfBuffer).then(e=>{
+                numpages = e.numpages
+
+                let obj: any = {}
+                pdf(pdfBuffer, {
+                    pagerender: async (data: any )=>{
+                        obj = Object.assign(obj, await render_page(data))
+                        numpages--;
+                        // obj = {...obj, ...await render_page(data)}
+                        if (numpages <=0) resolve(obj)
+                    }})
+            })
         })
     }
 
@@ -404,7 +413,7 @@ function start() {
 
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-           //  test()
+           test()
     })
 }
 start()
