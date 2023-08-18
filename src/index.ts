@@ -5,12 +5,12 @@ import * as bodyParser from "body-parser";
 import * as cors from 'cors';
 
 import * as express from 'express';
-import {test} from "./iTest";
 import {createPDF} from "./iCreatPDF";
 import {tCellInfo, tMapExcel, tMapPDF, tObjImage, tPFD, tRequest} from "./inteface";
 import {TF} from "wenay-common";
 import {PDFImage} from "pdf-lib";
 import {aExcel, aFont, aImage, aResult} from "./addres";
+import {test} from "./iTest";
 // @ts-ignore
 // import type {Buffer} from "exceljs/index";
 
@@ -32,6 +32,7 @@ async function render_page(pageData:any) {
         const str2 = item.str.replace(/\n/g, '')
 
         if (str2.includes('key_')) {
+            console.log(pageData.pageIndex);
             obj[item.str] = {
                 transform: item.transform,
                 pageIndex: pageData.pageIndex,
@@ -387,10 +388,12 @@ function start() {
                 .json({status: e})
         }
     }, )
-
-    server.listen(PORT, HOST, () => {
-        console.log(`Server has been started on port:${PORT}`);
-            //test()
+    return new Promise((resolve)=>{
+        server.listen(PORT, HOST, () => {
+            console.log(`Server has been started on port:${PORT}`);
+            test();
+            resolve(true);
+        })
     })
 }
 start()

@@ -2,6 +2,8 @@ import {PORT} from "./index";
 import {tDataKey, tRequest} from "./inteface";
 
 export async function test() {
+
+
     const status = await fetch("http://localhost:" + PORT + "/s",)
         .then(response => response.json())
     console.log("status !! ", status)
@@ -26,12 +28,14 @@ export async function test() {
 
     const datum: tRequest = {}
     const tempKey1 = "key_periodInfo"
+    const tempKey2 = "key_autoInfo"
     console.log("11")
 
     for (let i = 0; i < 1; i++) {
         const obj: tDataKey = {};
         (datum["4g"] ??= []).push(obj)
         obj[tempKey1] = "test11111111111 11111111111111111111111 11111111111111111111111111 111111111111111111111111111111 11111111111111111111111111111 111111111111111111111111 1111111111111111111111 " + String(i);
+        obj[tempKey2] = "222 222 222 22 22 22 22 " + String(i);
 
         obj["newImage"] = {
             width: 80,

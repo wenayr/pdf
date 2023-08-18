@@ -1,6 +1,5 @@
 import {PDFDocument, PDFImage} from "pdf-lib";
 import * as fontkit from "@pdf-lib/fontkit";
-import fs from "fs";
 
 import {tCellInfo, tDataKey, tFonts, tObjectString, tObjImage, tPFD} from "./inteface";
 
