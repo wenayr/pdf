@@ -16,7 +16,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
     for (let i = 0; i < length; i++)
         arr[i] = i;
 
-    for (let arrElement of dataKey) {
+    for (let j = 1; j < dataKey.length; j++) {
         const data = await pdfDocCopy.copyPages(pdfSimple, arr)
         for (let i = 0; i < length; i++) //   for (let i = 1; i < length; i++)
             pdfDocCopy.addPage(data[i])
@@ -25,9 +25,9 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
     pdfDocCopy.registerFontkit(fontkit);
     const customFont = ({
         origin: await pdfDocCopy.embedFont(fonts.origin),
-        italic: await pdfDocCopy.embedFont(fonts.italic),
+        italic: await pdfDocCopy.embedFont(fonts.origin),//await pdfDocCopy.embedFont(fonts.italic),
         bold: await pdfDocCopy.embedFont(fonts.bold),
-        boldItalic: await pdfDocCopy.embedFont(fonts.boldItalic),
+        boldItalic:  await pdfDocCopy.embedFont(fonts.bold),//await pdfDocCopy.embedFont(fonts.boldItalic),
     })
     type kCustomFont = keyof typeof customFont
 
@@ -51,6 +51,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
 
 
                 let widthCell = 100;
+                // excelKey
                 if (excelKey[key]?.width > 0) {
                     if (nameTmpl == "madi.xlsx" || nameTmpl == "form3.xlsx") {
                         widthCell = excelKey[key]?.width * 2.0;
@@ -68,13 +69,14 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 if (!tt && text) continue;
                 const objFont = obj?.font ? customFont[obj?.font] : customFont[excelKey[key]?.font.style ?? "origin"]
                 const horizontal = excelKey[key].alignment.horizontal
+                let x: number | undefined = undefined
                 if (horizontal == "center" || horizontal == "centerContinuous") {
-
+                    x = (obj?.x ?? tt.transform[4] )+ x + 0.5 * widthCell
                 }
                 try {
                     pages[tt.pageIndex + i * length] // i * length
                         .drawText(text ?? obj?.text ?? "none", {
-                            x: obj?.x ?? tt.transform[4],
+                            x:  obj?.x ?? tt.transform[4], // x ??
                             y: obj?.y ?? tt.transform[5],
                             size: obj?.size ?? tt.transform[0],
                             font: objFont,
@@ -84,7 +86,7 @@ export async function createPDF(_pdfSimple: Buffer, keyMap: {[key: string]: tPFD
                 } catch (e) {
                     throw (" drawText error " + (text ?? obj?.text ?? "none") + " "
                         +"   i: "+             (tt.pageIndex + i * length)
-                        +"   x: "+             (obj?.x ?? tt?.transform[4])
+                        +"   x: "+             (x ?? obj?.x ?? tt?.transform[4])
                         +"   y: "+             (obj?.y ?? tt?.transform[5])
                         +"   size: "+          (    obj?.size ?? tt?.transform[0])
                         +"   font: "+          (    objFont)

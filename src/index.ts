@@ -67,7 +67,12 @@ async function ExcelToMapCell(file: Buffer) {
                 //     console.log(rangeX);
                 //     console.log(rangeY);
                 // }
+
+                // console.log(row.getCell(cell._column._number));
+                //
+                // console.log("!!!!!");
                 cellInfo[cell.value]={
+                    left: 0,
                     rangeX: [cell.master?._column._number ?? cell._column._number,cell._column._number],
                     rangeY: [cell.master?._row._number ?? cell._row._number,cell._row._number],
                     font: {
@@ -87,6 +92,14 @@ async function ExcelToMapCell(file: Buffer) {
     for(const [key,value] of Object.entries(cellInfo)){
         let w = 0
         let h = 0
+
+        let xx = 0
+        for(let i=1;i<=value.rangeX[0];i++){
+            const x:any = row1.getCell(i)
+            xx += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
+            // console.log(x._column)
+        }
+
         for(let i=value.rangeX[0];i<=value.rangeX[1];i++){
             const x:any = row1.getCell(i)
             w += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
@@ -388,12 +401,10 @@ function start() {
                 .json({status: e})
         }
     }, )
-    return new Promise((resolve)=>{
-        server.listen(PORT, HOST, () => {
-            console.log(`Server has been started on port:${PORT}`);
-            test();
-            resolve(true);
-        })
+
+    server.listen(PORT, HOST, () => {
+        console.log(`Server has been started on port:${PORT}`);
+           //  test()
     })
 }
 start()
