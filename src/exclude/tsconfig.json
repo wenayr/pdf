@@ -3,6 +3,7 @@
     "noImplicitAny": true,
     "noImplicitThis": true,
     //"noUncheckedIndexedAccess": true,
+
     "strict": true,
 
     "strictNullChecks": true,
@@ -12,40 +13,17 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
+
     "noEmitOnError": true,
     "removeComments": true,
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    //"esModuleInterop": true,
+    //"allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    //"module": "commonjs",
-    "module": "esnext",
+    "module": "commonjs",
+    //"module": "esnext",
     "target": "ESNext",
     "lib": [
       "ESNext",
-      //"DOM"
-    ],
-    //"skipLibCheck": true,
-    "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "*": [
-        "node_modules/*",
-        //"src/types/*",
-        "types/*"
-      ]
-    },
-    "types": [
     ]
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "src/**/*_exclude.*",
-    "src/exclude",
-  ]
 }
 

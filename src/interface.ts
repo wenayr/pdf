@@ -1,28 +1,31 @@
-import {PDFImage} from "pdf-lib";
+//import {PDFImage} from "pdf-lib";
 
 export type tPFD = {
-    transform: [sizeFont: number, t1: number, t2: number, t3: number, x: number, y: number],
+    transform: [fontSize: number, t1: number, t2: number, t3: number, x: number, y: number],
     pageIndex: number,
     pageView: [x: number, y: number, w: number, h: number],
     fontName: string,
     width: number,
     height: number
 }
+
 export type tCellInfo = {
-    [key: string]: {
-        left: number,
-        rangeX: [number, number],
-        rangeY: [number, number],
-        font: { name: string, style: 'origin' | 'bold' | 'italic' | 'boldItalic' },
-        alignment: {
-            vertical: 'top' | 'bottom' | 'middle' | 'distributed' | 'justify',
-            horizontal: 'left' | 'right' | 'center' | 'fill' | 'justify' | 'centerContinuous' | 'distributed'
-        },
-        width?: number,
-        height?: number
-    }
+    left: number,
+    rangeX: [number, number], // range in cells
+    rangeY: [number, number], // range in cells
+    font: { name: string, style: 'origin' | 'bold' | 'italic' | 'boldItalic' },
+    alignment: {
+        vertical: 'top' | 'bottom' | 'middle' | 'distributed' | 'justify',
+        horizontal: 'left' | 'right' | 'center' | 'fill' | 'justify' | 'centerContinuous' | 'distributed'
+    },
+    width: number,
+    height: number
 }
-export type tExcel = tCellInfo
+
+export type tExcel = { [key: string]: tCellInfo };
+
+export type tPDFInfo = { [key: string]: tPFD };
+
 export type tMapExcel = { [key: string]: tExcel }
 export type tMapPDF = { [key: string]: Buffer }
 export type tObjectImage = {
@@ -41,12 +44,12 @@ export type tObjectString = {
     font?: "origin" | "bold" | "boldItalic" | "italic",
     maxWidth?: number,
 }
-export type tDataKey = {
+export type tKeyData = {
     [key: string]: string | tObjectImage | tObjectString
 }
 export type tRequest = {
     // тия шаблона
-    [nameTemplate: string]: tDataKey[]
+    [nameTemplate: string]: tKeyData[]|tKeyData
 }
 export type tFonts = {
     origin: Buffer,

@@ -1,256 +1,38 @@
-import * as ExcelJS from "exceljs";
-import {Workbook} from "exceljs";
-import * as fs from "fs";
-import * as bodyParser from "body-parser";
-import * as cors from 'cors';
 
-import * as express from 'express';
-import {createPDF} from "./iCreatPDF";
-import {tCellInfo, tMapExcel, tMapPDF, tObjImage, tPFD, tRequest} from "./inteface";
-import {TF} from "wenay-common";
-import {PDFImage} from "pdf-lib";
-import {aExcel, aFont, aImage, aResult} from "./addres";
-import {test} from "./iTest";
-// @ts-ignore
-// import type {Buffer} from "exceljs/index";
+//import * as fs from "fs";
+import fs from "fs";
+//import * as bodyParser from "body-parser";
+import bodyParser from "body-parser";
 
-const pdf = require('pdf-parse');
+// при включённом esModuleInterop импорт пишется без *
 
-const libre = require('libreoffice-convert');
-libre.convertAsync = require('util').promisify(libre.convert);
+//import * as cors from 'cors';
+import cors from 'cors';
 
-async function render_page(pageData:any) {
-    let render_options = {
-        normalizeWhitespace: false,
-        disableCombineTextItems: false
-    }
-    const textContent = await pageData.getTextContent(render_options)
+//import * as express from 'express';
+import express from 'express';
 
-    const obj: { [key: string]: tPFD } = {}
-    for (let item of textContent.items) {
-        // надо удалить все переносы строк если такие есть
-        const str2 = item.str.replace(/\n/g, '')
+import {tRequest} from "./interface";
 
-        if (str2.includes('key_')) {
-            obj[item.str] = {
-                transform: item.transform,
-                pageIndex: pageData.pageIndex,
-                pageView: pageData.pageInfo.view,
-                fontName: item.fontName,
-                width: item.width,
-                height: item.height
-            } as tPFD
-        }
-    }
-    return obj
-}
+import {aExcel, aFont, aImage, aResult} from "./address";
 
+import {test} from "./test";
 
-async function ExcelToMapCell(file: Buffer) {
-    // чтение стиля из эксель
-    const workbook:Workbook = new ExcelJS.Workbook();
-    const w = await workbook.xlsx.load(file);
-    const firstSheet = w.getWorksheet(1)
-
-    const cellInfo: tCellInfo = {}
-    const tt = TF.M15
-    let a = false
-    firstSheet.eachRow((row,rowNumber)=>{
-        row.eachCell((cell:any, colNumber)=> {
-            if(cell.value?.includes('key_')){
-                const style = cell.master ? cell.master.style : cell.style
-                //  {
-                //     a = true;
-                //     let rangeX= [cell.master?._column._number ?? cell._column._number,cell._column._number];
-                //     let rangeY= [cell.master?._row._number ?? cell._row._number,cell._row._number];
-                //     console.log(rangeX);
-                //     console.log(rangeY);
-                // }
-
-                // console.log(row.getCell(cell._column._number));
-                //
-                // console.log("!!!!!");
-                cellInfo[cell.value]={
-                    left: 0,
-                    rangeX: [cell.master?._column._number ?? cell._column._number,cell._column._number],
-                    rangeY: [cell.master?._row._number ?? cell._row._number,cell._row._number],
-                    font: {
-                        name: style.font.name,
-                        style: !style.font.bold && !style.font.italic ? 'origin' : style.font.bold && style.font.italic ? 'boldItalic' : style.font.bold ? 'bold' : 'italic'
-                    },
-                    alignment: {
-                        vertical: style.alignment?.vertical ?? 'top',
-                        horizontal: style.alignment?.horizontal ?? 'left',
-                    }
-                }
-            }
-        });
-    })
-
-    const row1=firstSheet.getRow(1)
-    for(const [key,value] of Object.entries(cellInfo)){
-        let w = 0
-        let h = 0
-
-        let xx = 0
-        for(let i=1;i<=value.rangeX[0];i++){
-            const x:any = row1.getCell(i)
-            xx += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
-            // console.log(x._column)
-        }
-
-        for(let i=value.rangeX[0];i<=value.rangeX[1];i++){
-            const x:any = row1.getCell(i)
-            w += Math.round(x._column.width+5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
-            // console.log(x._column)
-        }
-        // console.log(w)
-        for(let i=value.rangeY[0];i<=value.rangeY[1];i++){
-            const x:any = firstSheet.getRow(i)
-            h += x.height;
-        }
-        cellInfo[key].width=w
-        cellInfo[key].height=h
-    }
-    return cellInfo
-}
-
-
-async function convertExcToPDF(excel: Buffer) {
-    return await libre.convertAsync(excel, '.pdf', undefined) as Buffer
-}
-
-let _fonts: {origin: Buffer, italic: Buffer, bold: Buffer, boldItalic: Buffer} = undefined
-
-async function getFonts() {
-    if (!_fonts) _fonts = {
-        origin: await (fs.promises.readFile(aFont + 'arial.ttf')),
-        italic: await (fs.promises.readFile(aFont + 'ariali.ttf')),
-        bold: await (fs.promises.readFile(aFont + 'arialbd.ttf')),
-        boldItalic: await (fs.promises.readFile(aFont + 'arialbi.ttf')),
-    }
-    return _fonts
-}
-
-function fApi() {
-    const mapExcelStyle: tMapExcel = {}
-    const mapPDFKey: tMapPDF = {}
-    const mapPDFKeyMap: {[k: string]: {[p: string]: tPFD}}  = {}
-    const mapPDF: tMapPDF = {}
-    /// addTemplateExcel    req: {excel: Buffer, name: string, excelSimple: Buffer}  res: {status:"ok"}
-    const addTemplateExcel = async ({excelSimple, excel, name}: {excel: Buffer, name: string, excelSimple: Buffer}) => {
-        const xcl = await ExcelToMapCell(excel)
-        mapExcelStyle[name] = xcl;
-        /// надо конвертировать excel в пдф
-        const resKey = await convertExcToPDF(excel)
-        const res = await convertExcToPDF(excelSimple)
-        const pdfMapKey = await PDFToMapKey(resKey);
-
-        mapPDFKey[name] = resKey;
-        mapPDF[name] = res;
-        mapPDFKeyMap[name] = pdfMapKey;
-
-
-        // для проверки сохранит промежуточные PDF
-        // await fs.promises.writeFile("test"+name+".pdf", res)
-        // await fs.promises.writeFile("testKey"+name+".pdf", resKey)
-
-        return true;
-    }
-
-    const PDFToMapKey = (pdfBuffer: Buffer) => {
-        return new Promise<{[p: string]: tPFD}>((resolve, reject)=>{
-            let numpages = 0
-            // =) костыль, по другому непонятно как заранее узнать количество страниц
-            pdf(pdfBuffer).then(e=>{
-                numpages = e.numpages
-
-                let obj: any = {}
-                pdf(pdfBuffer, {
-                    pagerender: async (data: any )=>{
-                        obj = Object.assign(obj, await render_page(data))
-                        numpages--;
-                        // obj = {...obj, ...await render_page(data)}
-                        if (numpages <=0) resolve(obj)
-                    }})
-            })
-        })
-    }
-
-    /// dataToPDF    req:  {[p: string]: string | Buffer} res: {status:"ok"}
-    const dataToPDF = async (data: tRequest) => {
-        const fonts = await getFonts()
-            .catch((e)=>{
-                console.log("error")
-                throw " font " + e
-            })
-
-        const objImageB: tObjImage = {}
-        const ff = async (name: string) => objImageB[name] ??= await fs.promises.readFile(aImage + name)
-            .catch((e)=>{
-                console.log(" error ")
-                throw " cannot read " + name + e
-            })
-
-
-
-        for (const [name, dataKey] of Object.entries(data)) {
-            // файл с метками
-            const pdfKey = mapPDFKey[ name ]// открытие буфера пдф по имени
-            const pdf = mapPDF[ name ]// открытие буфера пдф по имени3
-            const excelKey = mapExcelStyle[ name ]
-            const pdfMapKey = mapPDFKeyMap[ name ]
-            if (!pdfMapKey) throw "не создан pdfMapKey с ключами для шаблона " + name
-            if (!pdfKey) throw "не создан pdf с ключами для шаблона " + name
-            if (!pdf) throw "не создан чистый pdf для шаблона " + name
-            if (!excelKey) throw "не создана карта ключей и стилей по excel для шаблона " + name
-
-            const objImage: tObjImage = {}
-            {
-                const arr2: Promise<any>[] = []
-                for (const data of dataKey)
-                    for (const value of Object.values(data))
-                        if (typeof value == "object" && value!=null && value.name && value.name!=null) arr2.push(ff(value.name).then(e=>objImage[value.name] = e))
-
-                await Promise.all(arr2)
-                    .catch((e)=>{
-                        console.log("error 555")
-                        throw " error promise all reading  " + e
-                    })
-            }
-
-            const result = await createPDF(pdf, pdfMapKey, dataKey, excelKey, fonts, objImage, name)
-                .catch((e)=>{
-                    throw " createPDF " + e
-                })
-            return result;
-        }
-        // return arrPDF
-        /*
-const pdfBytes = await pdfDoc.save();
-fs.writeFileSync('example.pdf', pdfBytes);*/
-    }
-    return {
-        // добавить шаблон
-        addTemplateExcel,
-        // конвертировать данные в пдф
-        dataToPDF,
-        // получить все текущие шаблоны
-        getExcel: ()=> mapExcelStyle
-    }
-}
+import {fApi} from "./API"
 
 const api = fApi()
 
 export const HOST = '0.0.0.0';
 export const PORT: number =  4051//+process.env.PORT
 
+import http from 'http';
 
 
-function start() {
+export function start() {
 
     const app = express();
-    const server = require('http').createServer(app)
+    //const server = require('http').createServer(app);
+    const server= http.createServer(app);
     app.use(cors({credentials: true, origin: true}))
     // app.use(bodyParser.urlencoded({extended: true}))
     // app.use(bodyParser.json())
@@ -273,6 +55,7 @@ function start() {
 
         const data = req.body as {excel: Buffer, name: string, excelSimple: Buffer}
         try {
+            console.log("add excel2 " + data.excel + " " + data.name)
             await api.addTemplateExcel(data)
             res.status(200)
                 .json({status: "ok"})
@@ -290,6 +73,7 @@ function start() {
                 excel: await fs.promises.readFile(aExcel + data.excel),
                 excelSimple: await fs.promises.readFile(aExcel + data.excelSimple)
             }
+            console.log("ok");
             await api.addTemplateExcel(data2)
 
             res.status(200)
@@ -297,6 +81,7 @@ function start() {
         } catch (e) {
             res.status(404)
                 .json({status: e})
+            console.error(e);
         }
     }, )
 
@@ -347,12 +132,13 @@ function start() {
     app.post('/dataToPDF2', async (req, res) => {
         const data = req.body as tRequest // {[p: string]:  {[p: string]: string | Buffer}[]}
         try {
-            const result = await api.dataToPDF(data)
+            const results = await api.dataToPDFMulti(data)
             res.status(200)
-                .json({status: "ok", result})
+                .json({status: "ok", result: results[0]})
         } catch (e) {
             res.status(404)
-                .json({status: e})
+                .json({status: e});
+            console.error(e);
         }
     }, )
     app.post('/dataToPDF', async (req, res) => {
@@ -360,26 +146,31 @@ function start() {
         try {
             console.log("dataToPDF")
             console.time("11")
-            const result = await api.dataToPDF(data)
+            const results = await api.dataToPDFMulti(data)
                 .catch((e)=>{
-                    throw " dataToPDFe " + e
-                })
-            console.timeEnd("11")
-            const name = String(Date.now()) + ".pdf"
-            const arrBaits = await result.save()
-                .catch((e)=>{
-                    throw "result.save"
-                })
-            await fs.promises.writeFile(aResult + name, arrBaits)
-                .catch((e)=>{
-                    throw "writeFile"
-                })
-            console.log("status: \"ok\", nameFile: " + name + " address: " + aResult + name)
-            res.status(200)
-                .json({status: "ok", nameFile: name})
+                    throw " dataToPDF " + e
+                });
+            console.timeEnd("11");
+            for(let [i,result] of results.entries()) {
+                const name = String(Date.now()) + ".pdf"
+                const arrBytes = await result.save()
+                    .catch((e)=>{
+                        throw " result.save: "+JSON.stringify(e)
+                    });
+                await fs.promises.writeFile(aResult + name, arrBytes)
+                    .catch((e)=>{
+                        throw "writeFile: "+JSON.stringify(e)
+                    });
+                console.log(`status: "ok", fileName: ${name}, address: ${aResult + name}`);
+                if (i==0)
+                    res.status(200).json({status: "ok", fileName: name})
+            }
+            // res.status(200)
+            //     .json({status: "ok", nameFile: name})
         } catch (e) {
             res.status(404)
                 .json({status: e + " " }) // ООО «СИСТЕМА»\nОГРН(ОГРНИП) 5177746289804\nИНН 7734409110 NaN26.206NaN560.403NaN6.49NaN[object Object]NaN7.4635NaN164
+            console.error(e);
         }
     }, )
     // вернет все ранее загруженные шаблоны - не требует параметров,
@@ -396,7 +187,8 @@ function start() {
                 .json({status: "ok", result})
         } catch (e) {
             res.status(404)
-                .json({status: e})
+                .json({status: e});
+            console.error(e);
         }
     }, )
 
@@ -407,15 +199,23 @@ function start() {
                 .json({status: "ok", result})
         } catch (e) {
             res.status(404)
-                .json({status: e})
+                .json({status: e});
+            console.error(e);
         }
     }, )
 
+    app.get("/stop", async(req, res)=> {
+        server.close();
+        res.status(200)
+            .json({status: "ok", result: "server closed"})
+    })
+
     server.listen(PORT, HOST, () => {
         console.log(`Server has been started on port:${PORT}`);
-           test()
+        //test()
     })
 }
-start()
 
+start();
+//test();
 
