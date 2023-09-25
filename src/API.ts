@@ -1,7 +1,7 @@
 ///??? <reference path="../pdf-parse.d.ts" />
 //import * as ExcelJS from "exceljs";
-import ExcelJS from "exceljs";
-import {Workbook} from "exceljs";
+
+//import {Workbook} from "exceljs";
 
 //import * as fs from "fs";
 import fs from "fs";
@@ -12,21 +12,11 @@ import {PDFDocument, PDFImage} from "pdf-lib";
 import {aFont, aImage,aResult} from "./address";
 
 
-//globalThis.
-//document.body
-// import * as PdfParse_ from 'pdf-parse';
-// import type PdfParse from '../pdf-parse';
-// //import type PdfParse from '../pdf-parse';
-// const pdfParse= PdfParse_ as typeof PdfParse;
-//
-
 //import * as PdfParse from 'pdf-parse-debugging-disabled;
 //const pdfParse= PdfParse.default;
 
 import PdfParse from 'pdf-parse-debugging-disabled';
 const pdfParse= PdfParse;
-
-
 
 //import {PageData} from "pdf-parse";
 //import type {PageData} from "pdf-parse";
@@ -34,10 +24,10 @@ const pdfParse= PdfParse;
 //const libre = require('libreoffice-convert');
 //libre.convertAsync = require('util').promisify(libre.convert);
 
-import * as libre from 'libreoffice-convert';
-//import libre2 from 'libreoffice-convert';
-import * as util from 'util';
-const libreConvertAsync = util.promisify(libre.convert);
+import unoconv from "./unoconv_my";
+
+import XlsxPopulate from 'xlsx-populate';
+//import node_convert from '../my_modules/node-convert_my/src';
 
 
 
@@ -46,10 +36,10 @@ async function render_page(pageData :PdfParse.PageData)
     let render_options : PdfParse.RenderOptions = {
         normalizeWhitespace: false,
         disableCombineTextItems: false
-    }
+    };
     const textContent : PdfParse.TextContent = await pageData.getTextContent(render_options);
     //console.log("textContent for page #",pageData.pageIndex,"\n",textContent);
-    const obj: { [key: string]: tPFD } = {}
+    const obj: { [key: string]: tPFD[] } = {}
     for (let item of textContent.items satisfies PdfParse.PageItem[]) {
         // надо удалить все переносы строк если такие есть
         const str2 = item.str.replace(/\n/g, '');
@@ -57,7 +47,7 @@ async function render_page(pageData :PdfParse.PageData)
 
         if (str2.includes('key_')) {
             //console.log("item:",str2, item);
-            obj[item.str] = {
+            let data : tPFD = {
                 transform: item.transform,
                 pageIndex: pageData.pageIndex,
                 pageView: pageData.pageInfo.view,
@@ -65,140 +55,14 @@ async function render_page(pageData :PdfParse.PageData)
                 width: item.width,
                 height: item.height
             };// satisfies tPFD
+            (obj[item.str] ??= []).push(data);
         }
     }
     return obj
 }
 
 
-type tCellPrivate = ExcelJS.Cell & { _column: ExcelJS.Column, _row: ExcelJS.Row, master: tCellPrivate};
 
-
-
-
-
-function picels2chars(px :number) {
-
-    // there are two magic numbers: 1/12 and 1/7 that found experimentally
-    // convertion assumes that Normal style has default font of "Calibri 11pt"
-    // and display is 96ppi
-    // !!!note: px must be integer
-    let dpi = 120;
-    if (px < 12) {
-        return Math.round(px / 12 * 100) / 100 * 96/dpi
-    }
-    else {
-        return Math.round((1 + (px - 12) / 7) * 100) / 100 * 96/dpi
-    }
-}
-function chars2pixels(ch :number) {
-    return ch * 4;
-    let dpi = 120;
-    if (ch < 1) {
-        return Math.round(ch * 12) * dpi/96
-    }
-    else {
-        return Math.round((ch - 1) * 7 + 12) * dpi/96
-    }
-}
-
-
-async function ExcelToMapCell(file: Buffer) {
-    // чтение стиля из эксель
-    const workbook:Workbook = new ExcelJS.Workbook();
-    const w = await workbook.xlsx.load(file);
-    const firstSheet = w.getWorksheet(1);
-    //await workbook.xlsx.writeFile("myFile.xlsx");
-
-    const cellsInfo: tExcel = {}
-    //const tt = TF.M15
-    let a = false
-    firstSheet.eachRow((row,rowNumber)=>{
-        row.eachCell((cell_, colNumber)=> {
-            let cell = cell_ as tCellPrivate;
-            //if (cell==cell.master)
-            if(typeof(cell.value)=="string" && cell.value.includes('key_')) {
-                let cellInfo= cellsInfo[cell.value];
-                if (! cellInfo) {
-                    let masterCell= cell.master;
-                    const style = masterCell.style;
-                    const font= style.font;
-                    // console.log(row.getCell(cell._column._number));
-                    //
-                    // console.log("!!!!!");
-                    cellInfo = {
-                        left: 0,
-                        rangeX: [-1,-1],//[masterCell._column.number, cell._column.number],
-                        rangeY: [-1,-1],//[masterCell._row.number, cell._row.number],
-                        font: {
-                            name: font?.name ?? "",
-                            style: !font?.bold && !font?.italic ? 'origin' : font.bold && font.italic ? 'boldItalic' : font.bold ? 'bold' : 'italic'
-                        },
-                        alignment: {
-                            vertical: style.alignment?.vertical ?? 'top',
-                            horizontal: style.alignment?.horizontal ?? 'left',
-                        },
-                        width: 0,
-                        height: 0
-                    }
-                    //console.log("excel cell: ",cell.value, cell, "->", cellsInfo[cell.value]);
-                }
-                if (cell._column.number > cellInfo.rangeX[1]) {
-                  cellInfo.width += cell._column.width??0;
-                  if (cellInfo.rangeX[0]==-1) cellInfo.rangeX[0]= cell._column.number;
-                  cellInfo.rangeX[1]= cell._column.number;
-                }
-                if (cell._row.number > cellInfo.rangeY[1]) {
-                    cellInfo.height += cell._row.height??0;
-                    if (cellInfo.rangeY[0]==-1) cellInfo.rangeY[0]= cell._row.number;
-                    cellInfo.rangeY[1]= cell._row.number;
-                }
-                cellsInfo[cell.value]= cellInfo;
-                //if (cell.value=="key_periodInfo") console.log("+",ch2px(cell._column.width??0));
-                //cellsInfo[cell.value].rangeX[1]=
-                //if (removeKeys) cell.value="";
-            }
-        });
-    })
-
-    for(let [key,cell] of Object.entries(cellsInfo)) {
-        cell.width= Math.round(chars2pixels(cell.width) +0);
-        cell.height= Math.round(chars2pixels(cell.height) +0);
-        //console.log(key, cell);
-    }
-
-    //console.log(cellsInfo);
-    // const row1= firstSheet.getRow(1)
-    // for(const [key,value] of Object.entries(cellsInfo)){
-    //     let w = 0;
-    //     let h = 0;
-    //     let xx = 0;
-    //     for(let i=1; i<=value.rangeX[0]; i++) {
-    //         const cell = row1.getCell(i) as tCellPrivate;
-    //         xx += Math.round(cell._column.width??0 +5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
-    //         // console.log(x._column)
-    //     }
-    //     for(let i=value.rangeX[0]; i<=value.rangeX[1]; i++){
-    //         const cell = row1.getCell(i) as tCellPrivate;
-    //         w += Math.round(cell._column.width??0 +5); // 6 ширина символа шрифта (проверить надо точную !!)  , 5 - padding (тоже примерно) // 6*
-    //         // console.log(x._column)
-    //     }
-    //     // console.log(w)
-    //     for(let i=value.rangeY[0]; i<=value.rangeY[1]; i++){
-    //         const row = firstSheet.getRow(i)
-    //         h += row.height;
-    //     }
-    //     cellsInfo[key]!.width= w;
-    //     cellsInfo[key]!.height= h;
-    // }
-    return cellsInfo;
-}
-
-
-
-async function convertExcToPDF(excel: Buffer) {
-    return await libreConvertAsync(excel, '.pdf', undefined) as Buffer
-}
 
 let _fonts: {origin: Buffer, italic: Buffer, bold: Buffer, boldItalic: Buffer} | undefined;
 
@@ -261,35 +125,133 @@ async function loadTemplate(templateName :string) : Promise<TemplateData|null> {
     };
 }
 
+import {ChildProcessWithoutNullStreams} from "node:child_process";
+import {Excel_removeKeys} from "./exclude/helper_exclude";
+
+
+
+
+async function parseExcel(buffer :Buffer) {
+    //console.log("!");
+    let workBook= await XlsxPopulate.fromDataAsync(buffer);
+    //console.log("!!");
+    const sheet = workBook.sheet(0);
+    //await fs.promises.writeFile(aResult+"new.txt", await JSON.stringify(workBook));
+    //let obj : {[key: string] : number} = {};
+    const cellsInfo: tExcel = {};
+    let _keyCells : XlsxPopulate.Cell[]= [];
+    let _keyCellValues : any[]= [];
+    let _isKeysRemoved= false;
+    //console.log((workBook.properties() as any)._properties , (workBook.properties() as any)._node);
+
+    let mergesObj= (sheet as any)._mergeCells;
+
+    for(let [rangeName, mergeInfo] of Object.entries(mergesObj) as [string, {attributes :{ref:string}}][]) {//XlsxPopulate.Range][]) {
+        let rangeRef= mergeInfo.attributes.ref;
+        let range= sheet.range(rangeRef); //attributes
+
+        let firstCell= range.startCell();
+        let lastCell= range.endCell();
+        let cell= firstCell;
+        let value= cell.value()?.toString() ?? "";
+        if (value.includes("key_")) {
+        //if (value.includes("key_Z") || value=="key_A1") {
+            let cols= lastCell.columnNumber()-firstCell.columnNumber()+1;
+            let rows= lastCell.rowNumber()-firstCell.rowNumber()+1;
+
+            let width= 0;  for(let i=0; i<cols; i++) width+= sheet.column(firstCell.columnNumber()+i).width()??0;
+            let height= 0; for(let i=0; i<rows; i++) height+= sheet.row(firstCell.rowNumber()+i).height()??0;
+
+            let keys= ["fontFamily", "fontSize", "bold", "italic", "underline", "strikethrough", "horizontalAlignment", "verticalAlignment", "fontColor"] as const;
+            let vals= keys.map(key=>{ let val="unknown"; try { val= cell.style(key); } catch(e) { throw e; }  return [key,val] });
+            //let style= cell.style();
+            let styleMap_= vals.reduce( (obj, [key,val])=>{obj[key]=val;  return obj; }, {} as {[k:string]:unknown} );
+            let style= styleMap_ as {[key in typeof keys[number]] : unknown};
+
+            if (0)
+            console.log("cell",value, { range: rangeName, cellAddr:cell.address() }, cols+"x"+rows, {width, height}, style);
+
+            (cellsInfo[value] ??=[]).push({
+                //left: 0,
+                rangeX: [firstCell.columnNumber(), lastCell.columnNumber()], // range in cells
+                rangeY: [firstCell.rowNumber(), lastCell.rowNumber()], // range in cells
+                font: {
+                    name: style.fontFamily as string,
+                    style: style.bold && style.italic ? 'boldItalic' : style.bold ? 'bold' : style.italic ? 'italic' : 'origin',
+                    strikeThrough: style.strikethrough as boolean,
+                    color: style.fontColor===undefined || typeof(style.fontColor)=="string" ? style.fontColor : "#"+(style.fontColor as XlsxPopulate.Color).rgb
+                },
+                alignment: {
+                    vertical: style.verticalAlignment=="center" ? "middle" : style.verticalAlignment as any ?? "bottom", //'top' | 'bottom' | 'middle' | 'distributed' | 'justify',
+                    horizontal: style.horizontalAlignment as any,
+                },
+                width: width*4,
+                height: height*0.75
+            });
+            _keyCells.push(cell);
+            _keyCellValues.push(value);
+            //cell.value("");
+        }
+    }
+
+    return {
+        keysInfo: cellsInfo,
+        async export(removeKeys=false) {
+            if (removeKeys!=_isKeysRemoved) for(let [i,key] of _keyCellValues.entries()) _keyCells[i].value(removeKeys ? "" : key);
+            _isKeysRemoved= removeKeys;
+            return await workBook.outputAsync(Buffer) as Buffer
+        }
+    } as const;
+}
+
+
 
 export function fApi()
 {
     const _map : {[k: string] : TemplateData} = { };
 
-    const _mapExcelStyle: tMapExcel = {}
+    let _excelInfoMap : tMapExcel|undefined;// = {}
+
+    unoconv.listen();
     //const _mapPDFKeyMap: {[k: string]: {[p: string]: tPFD}}  = {}
     //const _mapPDF: tMapPDF = {}
     //const _mapPDFKey: tMapPDF = {}
 
-    const addTemplateExcel = async ({excelSimple, excel, name}: {excel: Buffer, name: string, excelSimple: Buffer}) => {
-        console.log("! 1");
+    const addTemplateExcel = async ({excelSimple, excel, name}: {excel: Buffer, name: string, excelSimple?: Buffer}) => {
+        console.log("! 0");
         let t= Date.now();
         function timerTick() { let delta= Date.now()-t;  t= Date.now();  return delta; }
 
-        const excelInfo = await ExcelToMapCell(excel); console.log("! 2:", timerTick(),"ms");
-        //_mapExcelStyle[name] = excelInfo;
-    //if (1) return;
-        /// надо конвертировать excel в пдф
-        const pdfKeyBuf = await convertExcToPDF(excel); console.log("! 3:", timerTick(),"ms");
+
+        let bookInfo= await parseExcel(excel);  console.log("! 1:", timerTick(),"ms");
+        let fontsOk= Object.values(bookInfo.keysInfo).length==0 ||  Object.entries(bookInfo.keysInfo).some(([key,infos])=>infos.find(info=> !info.font.strikeThrough));
+        // дополнительная переконвертация, т.к. может быть некорректный формат файла (неправильные шрифты)
+        if (!fontsOk) {
+            excel= await unoconv.convertAsync(excel, 'xlsx');  console.log("! 1.5:", timerTick(),"ms");
+            bookInfo= await parseExcel(excel);  console.log("! 2:", timerTick(),"ms");
+        }
+        //let excelInfo0 = await ExcelToMapCell(excel);  console.log("! 1:", timerTick(),"ms");
+        //console.log(excelInfo0);
+
+        //if (1) return true;
+        //excel= await bookInfo.export(true);
+        //await fs.promises.writeFile(aResult+"pop "+name+".xlsx", excel);  console.log("! 3:", timerTick(),"ms");
+        //console.log("exit");  return true;
+
+        let excelInfo= bookInfo.keysInfo;
+
+        excelSimple ??= await bookInfo.export(true);  console.log("! 3:", timerTick(),"ms");
+
+        let pdfKeyBuf : Buffer= await unoconv.convertAsync(excel, 'pdf');  console.log("! 4:", timerTick(),"ms");
         //
         //excelSimple= await ExcelRemoveKeys(excel);  console.log("! 4:", timerTick(),"ms");
 
-        const pdfCleanBuf = await convertExcToPDF(excelSimple); console.log("! 5:", timerTick(),"ms");
+        const pdfCleanBuf = await unoconv.convertAsync(excelSimple, 'pdf'); console.log("! 5:", timerTick(),"ms");
 
         //const pdfCleanBuf= await removeKeysFromPDF(pdfKeyBuf);
         //await fs.promises.writeFile(aResult +"testNew"+name+".pdf", pdfCleanBuf)
         //return;
-        const pdfKeyMap = await PDFToMapKey(pdfKeyBuf); console.log("! 6:", timerTick(),"ms");
+        const pdfKeyMap = await PDFToMapKey(pdfKeyBuf);  console.log("! 6:", timerTick(),"ms");
 
         //_mapPDFKey[name] = pdfKeyBuf;
         //_mapPDF[name] = pdfCleanBuf;
@@ -303,13 +265,13 @@ export function fApi()
         };
 
         _map[name] = data;
-
+        _excelInfoMap= undefined;
         //console.log("bufferSimple:",pdfCleanBuf);
         //console.log("buffer:",pdfKeyBuf);
         //console.log("pdfMapKey:\n",pdfKeyMap);
 
         // для проверки сохранит промежуточные PDF
-        if (0) {
+        if (1) {
             fs.promises.writeFile(aResult +"test"+name+".pdf", pdfCleanBuf)
             fs.promises.writeFile(aResult +"testKey"+name+".pdf", pdfKeyBuf)
         }
@@ -320,8 +282,8 @@ export function fApi()
     }
 
     const PDFToMapKey = (pdfBuffer: Buffer) => {
-        return new Promise<{[p: string]: tPFD}>((resolve, reject)=>{
-            let obj: { [key: string]: tPFD } = {};
+        return new Promise<{[p: string]: tPFD[]}>((resolve, reject)=>{
+            let obj: { [key: string]: tPFD[] } = {};
             pdfParse(pdfBuffer, {
                 pagerender: async(data)=>{
                     obj = Object.assign(obj, await render_page(data));
@@ -363,7 +325,11 @@ export function fApi()
         let templateData : TemplateData|null = _map[name];
         if (! templateData) {
             templateData= await loadTemplate(name);
-            if (templateData) { _map[name]= templateData; console.log("Прочитан шаблон",name,"из файла"); }
+            if (templateData) {
+                _map[name]= templateData;
+                _excelInfoMap= undefined;
+                console.log("Прочитан шаблон",name,"из файла");
+            }
         }
         if (! templateData)
             throw "отсутствуют данные для шаблона " + name;
@@ -428,7 +394,11 @@ fs.writeFileSync('example.pdf', pdfBytes);*/
         dataToPDF,
         dataToPDFMulti,
         // получить все текущие шаблоны
-        getExcel: ()=> _mapExcelStyle
+        getExcel: ()=> _excelInfoMap ??= (()=>{
+            let obj :tMapExcel= {};
+            for(let [key, data] of Object.entries(_map)) obj[key]= data.excelData;
+            return obj;
+        })()
     }
 }
 

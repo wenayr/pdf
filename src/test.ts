@@ -7,7 +7,7 @@ import * as addr from "./address";
 
 
 //let PORT= 4051;
-//document.body;
+
 
 export async function test() {
 
@@ -22,26 +22,27 @@ export async function test() {
     console.log("Отправка запроса на добавление шаблона");
 
     if (1) {
-    const r = await fetch(url + "/addTemplateExcel", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            //excel: "test4pgruz.xlsx",
-            //excelSimple: "test4pgruzNo.xlsx",
-            excel: "4pgruz_key.xlsx",
-            excelSimple: "4pgruz.xlsx",
-            name: "4p"
-        } as { excel: string, name: string, excelSimple: string })
-    })
-        .then(response => response.json())
-        .catch(e => {
-            console.error("error ", e)
+        const r = await fetch(url + "/addTemplateExcel", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                //excel: "test4pgruz.xlsx",
+                //excelSimple: "test4pgruzNo.xlsx",
+                //excel: "4pgruz_key_.xlsx",
+                excel: "test.xlsx",
+                excelSimple: "4pgruz.xlsx",
+                name: "4p"
+            } as { excel: string, name: string, excelSimple: string })
         })
-    console.log("Ответ от сервера:", r);
+            .then(response => response.json())
+            .catch(e => {
+                console.error("error ", e)
+            })
+        console.log("Ответ от сервера:", r);
     }
-    //console.log("exit"); return;
+    // console.log("exit");  await fetch(url + "/stop"); if (1) return;
 
     const request: tRequest = {}
 
@@ -52,12 +53,13 @@ export async function test() {
         let obj: tKeyData = {};
 
         obj= {
-            key_A1: "КлючA1 жирный",
-            key_Z2: "КлючZ1 жирный",
+            //key_A1: "КлючA1 жирный",
+            key_Z2: "КлючZ2 жирный",
             key_Z3: "КлючZ3 жирный курсив",
-            key_CZ4: "КлючCZ4 по центру",
-            key_BD1: "КлючBD1 по прав.краю",
-            key_D12: "КлючD12: Фамилия Имя Отчество"
+            key_A1: "КлючА1 (какой-то текст) 11111111111 111 1 2 3 4 4 5 1 1 1 2 3 4 5  1 1 2 3 4 5 6 3 2 1 3 4 5 6 7 8 9 0 1 2 3 4 5 "
+            // key_CZ4: "КлючCZ4 по центру",
+            // key_BD1: "КлючBD1 по прав.краю",
+            // key_D12: "КлючD12: Фамилия Имя Отчество"
         };
 
         /*
@@ -71,7 +73,7 @@ export async function test() {
             height: 40,
             name: "qr.png"
         };
-
+        */
         obj["newImage"] = {
             width: 80,
             height: 80,
@@ -79,7 +81,7 @@ export async function test() {
             y: 400,
             name: "qr.png"
         };
-        */
+
 
         // for (let j = 0; j < 5; j++) {
         //     obj["newImage" + j] = {

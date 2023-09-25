@@ -53,7 +53,7 @@ export function start() {
      */
     app.post('/addTemplateExcel2', async (req, res) => {
 
-        const data = req.body as {excel: Buffer, name: string, excelSimple: Buffer}
+        const data = req.body as {excel: Buffer, name: string, excelSimple?: Buffer}
         try {
             console.log("add excel2 " + data.excel + " " + data.name)
             await api.addTemplateExcel(data)
@@ -65,13 +65,13 @@ export function start() {
         }
     }, )
     app.post('/addTemplateExcel', async (req, res) => {
-        const data = req.body as {excel: string, name: string, excelSimple: string}
+        const data = req.body as {excel: string, name: string, excelSimple?: string}
         try {
             console.log("add excel " + data.excel + " " + data.name)
             let data2 = {
                 name: data.name,
                 excel: await fs.promises.readFile(aExcel + data.excel),
-                excelSimple: await fs.promises.readFile(aExcel + data.excelSimple)
+                excelSimple: data.excelSimple ? await fs.promises.readFile(aExcel + data.excelSimple) : undefined
             }
             console.log("ok");
             await api.addTemplateExcel(data2)
@@ -130,7 +130,7 @@ export function start() {
         или ошибку если что-то не так
      */
     app.post('/dataToPDF2', async (req, res) => {
-        const data = req.body as tRequest // {[p: string]:  {[p: string]: string | Buffer}[]}
+        const data = req.body as tRequest; // {[p: string]:  {[p: string]: string | Buffer}[]}
         try {
             const results = await api.dataToPDFMulti(data)
             res.status(200)
@@ -205,9 +205,9 @@ export function start() {
     }, )
 
     app.get("/stop", async(req, res)=> {
-        server.close();
         res.status(200)
-            .json({status: "ok", result: "server closed"})
+            .json({status: "ok", result: "server closed"});
+        server.close();
     })
 
     server.listen(PORT, HOST, () => {

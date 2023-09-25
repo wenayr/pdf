@@ -17,13 +17,14 @@
     "noEmitOnError": true,
     "removeComments": true,
     //"esModuleInterop": true,
-    //"allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
     "module": "commonjs",
     //"module": "esnext",
     "target": "ESNext",
     "lib": [
       "ESNext",
-    ]
+    ],
+  }
 }
 

@@ -8,4 +8,11 @@ declare global {
 
   var File: File;
   //var Blob: Blob;
+  //const console : typeof console2.Console;
 }
+
+//type console= typeof console2;
+
+
+
+//export console from "console";

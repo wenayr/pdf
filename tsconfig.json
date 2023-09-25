@@ -13,6 +13,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
+    "checkJs": true,
     "noEmitOnError": true,
     "removeComments": true,
     "sourceMap": true,
@@ -32,6 +33,7 @@
     "paths": {
       "*": [
         "node_modules/*",
+        "my_modules/*",
         //"src/types/*",
         "types/*"
       ]
@@ -44,8 +46,13 @@
   ],
   "exclude": [
     "node_modules",
-    "src/**/*_exclude.*",
-    "src/exclude",
+    "my_modules",
+    //"src/**/*_exclude.*",
+    //"src/exclude",
+  ],
+  "references": [
+//    { "path": "./my_modules/unoconv_my2" },
+//    { "path": "./my_modules/node-convert_my" }
   ]
 }
 

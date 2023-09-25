@@ -10,21 +10,21 @@ export type tPFD = {
 }
 
 export type tCellInfo = {
-    left: number,
+    //left: number,
     rangeX: [number, number], // range in cells
     rangeY: [number, number], // range in cells
-    font: { name: string, style: 'origin' | 'bold' | 'italic' | 'boldItalic' },
+    font: { name: string, style: 'origin' | 'bold' | 'italic' | 'boldItalic', strikeThrough: boolean|undefined, color: string|undefined },
     alignment: {
-        vertical: 'top' | 'bottom' | 'middle' | 'distributed' | 'justify',
+        vertical: 'top' | 'bottom' | 'middle' | 'distributed' | 'justify',  // justify - по высоте, distributed - распределённый
         horizontal: 'left' | 'right' | 'center' | 'fill' | 'justify' | 'centerContinuous' | 'distributed'
     },
     width: number,
     height: number
 }
 
-export type tExcel = { [key: string]: tCellInfo };
+export type tExcel = { [key: string]: tCellInfo[] };  // для каждого ключа может быть несколько ячеек
 
-export type tPDFInfo = { [key: string]: tPFD };
+export type tPDFInfo = { [key: string]: tPFD[] };
 
 export type tMapExcel = { [key: string]: tExcel }
 export type tMapPDF = { [key: string]: Buffer }
