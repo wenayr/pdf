@@ -20,12 +20,33 @@ import {test} from "./test";
 
 import {fApi} from "./API"
 
-const api = fApi()
+const api = fApi();
+
+
+function getInputConfig() {
+    //console.log("Args: ",process.argv);
+    let config : { port?: number } = { }
+    for(let arg of process.argv.slice(2)) {
+        let pair= arg.split("=");
+        let key= pair[0].toLowerCase();
+        if (key=="port" || key=="-port" || key=="--port") {
+            let port= parseInt(pair[1]);
+            //console.log(port);
+            if (! isNaN(port)) {
+                console.log("got argument: port=",port);
+                config.port= port;
+            }
+        }
+    }
+    return config;
+}
 
 export const HOST = '0.0.0.0';
-export const PORT: number =  4051//+process.env.PORT
+export const PORT: number = getInputConfig().port ?? 4051; ////+process.env.PORT
 
 import http from 'http';
+
+
 
 
 export function start() {
@@ -202,6 +223,7 @@ export function start() {
         res.status(200)
             .json({status: "ok", result: "server closed"});
         server.close();
+        api.disconnect();
     })
 
     server.listen(PORT, HOST, () => {

@@ -9,6 +9,7 @@
     "build & watch": "tsc --watch",
     "start": "node --experimental-specifier-resolution=node ./dist/index.js",
     "test": "node --experimental-specifier-resolution=node ./dist/runTest.js",
+    "test2": "node --experimental-specifier-resolution=node --trace-uncaught ./dist/runTest2.js",
     "build & start": "npm run build&& npm run start"
   },
   "author": "",

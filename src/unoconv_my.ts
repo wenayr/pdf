@@ -5,7 +5,7 @@ import mime from "mime";
 import fs from "fs";
 import * as os from "os";
 import path from "path";
-import * as console from "console";
+import * as console from "console"; import {waitForProcessRunAsync} from "./processHelper";
 
 
 
@@ -45,32 +45,24 @@ namespace unoconv {
         server :string;
     }>;
 
+
     /**
     * Convert a document.
     */
     export function convert(fileOrBuffer :string|Buffer, outputFormat :string, options :Options, callback :Callback) : ChildProcess;
     export function convert(fileOrBuffer :string|Buffer, outputFormat :string, callback :Callback) : ChildProcess;
 
-    export function convert(fileOrBuffer :string|Buffer, outputFormat :string, optionsOrCallback :Options|Callback, callback? :Callback) {
+    export function convert(fileOrBuffer :string|Buffer, outputFormat :string, optionsOrCallback :Options|Callback, callback_? :Callback) {
 
-
-        if (0) {
-            console.time("*");
-            return childProcess.execFile("python")
-            .on("exit", ()=>console.timeLog("*","exit"))
-            .on("close", ()=>console.timeLog("*","close"))
-            .on("spawn", ()=>console.timeLog("*","spawn"))
-            .on("error", ()=>console.timeLog("*","error"))
-            .on("disconnect", ()=>console.timeLog("*","disconnect"))
-        }
         let stdout : Uint8Array[] = [];
         let stderr : Uint8Array[] = [];
         let options : Options;
         if (typeof optionsOrCallback=="function") {
-            callback = optionsOrCallback;
+            callback_ = optionsOrCallback;
             options = {};
         }
-        else options= optionsOrCallback;
+        else { options= optionsOrCallback;  callback_= callback_!; }
+        const callback = callback_ satisfies Callback;
 
         let args = [
             '-f' + outputFormat,
@@ -102,44 +94,65 @@ namespace unoconv {
         let bin = options.runCommand ?? defaultRunCommand;
 
         //let buf= fs.readFileSync(file);
-
+        //console.log("! 1");
         let child = childProcess.spawn(bin, args, { shell: true /*, stdio: buf*/ });//, function (err, stdout, stderr) {
         //let child= childProcess.exec(bin+" "+args.join(" "));
         //child.stdin.write(buf);
-
-        child.stdout!.on('data', function (data) {
+        //console.log("! 2");
+        child.stdout!.on('data', function (data) { //console.log("! stdout.data");
             stdout.push(data);
         });
 
-        child.stderr!.on('data', function (data) {
+        child.stderr!.on('data', function (data) { //console.log("! stderr.data",data.toString());
             stderr.push(data);
         });
 
-        child.on('exit', function () {
+        child.on('exit', function () { //console.log("! exit");
 
             if (stderr.length) {
-                return callback?.(new Error(Buffer.concat(stderr).toString()));
+                let str= Buffer.concat(stderr).toString();
+                if (str.includes("DeprecationWarning")) {
+                    console.warn(str);
+                    if (str.includes("Error: Unable to connect or start own listener. Aborting.")) {
+                        let optionsExt= { recurs: 0, ...options };
+                        if (optionsExt.recurs++ < 2) {  // повторяем до двух раз
+                            console.log("Repeat run exec");
+                            return convert(fileOrBuffer, outputFormat, options, callback);
+                        }
+                    }
+                }
+                else {
+                    //console.log("Error str on exit:", str);
+                    return callback?.(new Error(str));
+                }
             }
 
             callback?.(null, Buffer.concat(stdout));
 
-            if (typeof(fileOrBuffer)=="object")
+            if (typeof(fileOrBuffer)=="object") {
+                console.log("removing temp file");
                 fs.unlinkSync(file);
+                console.log("ok");
+            }
         });
-        child.on('error', (err) => callback?.(new Error(err.message)));
+        child.on('error', (err) => { console.log("! error ",err);  callback?.(err); });
         return child;
     }
 
-
+    let _conversionTask = Promise.resolve(Buffer.from([])); //: Promise<void>|undefined;
 
     export async function convertAsync(fileOrBuffer :string|Buffer, outputFormat :string, options? :Options) : Promise<Buffer> {
-        return new Promise((resolve, reject)=>{
+        await _startListenerTask;
+        // ждём завершения прошлой задачи, т.к. многопоточные запросы невозможны (soffice выдаёт ошибку)
+        return _conversionTask= _conversionTask.then( ()=>new Promise((resolve, reject)=>{
+           //console.log("!!!!! in")
            convert(fileOrBuffer, outputFormat, options ?? {},
-           (err, output)=> err ? reject(err) : resolve(output!))
-        });
+           (err, output)=> err ? reject(err) : resolve(output!)
+        )}));
     }
 
-
+    let _startListenerTask : Promise<void>|undefined;
+    let _listener : ChildProcess|undefined;
     /**
     * Start a listener.
     */
@@ -153,9 +166,30 @@ namespace unoconv {
 
         let bin= options?.runCommand ?? defaultRunCommand;
         //let python= options?.pythonPath ?? "python";
+        //setTimeout.__promisify__(100).
+        //
+        // then(waitForProcessRunAsync('soffice.exe');
+        let _resolve : ()=>void, _reject: (e :Error)=>void;
+        let waitingTask= new Promise<void>((resolve, reject)=>{ _resolve= resolve; _reject=reject; });
+        // после запуска листенера будем ждать появления процесса soffice
+        if (1)
+        _startListenerTask= (async()=>{
+            await waitingTask;
+            console.log("start waiting for 'soffice.bin'");
+            let res= await waitForProcessRunAsync('soffice.bin', 1000, 10000);
+            console.log("finish waiting for 'soffice.bin'.  Result="+res);
+            _startListenerTask=undefined;
+        })();
 
-        return childProcess.spawn(bin, args, { shell: true });
+        console.log("Start unoconv listener");
+        //_task= new Promise((resolve, reject)=>{ _resolve=resolve; _reject=reject; });
+        //_task= new Promise())
+        return _listener= childProcess.spawn(bin, args, { shell: true })
+            .on("spawn", ()=>_resolve())
+            .on("error", (e)=>_reject(new Error("listener error: "+e.message)))
     }
+    // Остановка листенера (не работает при завершении из текущего потока)
+    export function stopListener() { _listener?.kill("SIGINT");  _listener=undefined; } //_listener?.kill();
 
 
     export type Format = {

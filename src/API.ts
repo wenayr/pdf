@@ -222,12 +222,14 @@ export function fApi()
         let t= Date.now();
         function timerTick() { let delta= Date.now()-t;  t= Date.now();  return delta; }
 
+         // console.warn("Дополнительный вызов для отладки");
+         //     unoconv.convertAsync(excel, 'pdf').then(res=>console.log("! 1.2:", timerTick(),"ms   bufLen=",res.length));
 
         let bookInfo= await parseExcel(excel);  console.log("! 1:", timerTick(),"ms");
         let fontsOk= Object.values(bookInfo.keysInfo).length==0 ||  Object.entries(bookInfo.keysInfo).some(([key,infos])=>infos.find(info=> !info.font.strikeThrough));
         // дополнительная переконвертация, т.к. может быть некорректный формат файла (неправильные шрифты)
         if (!fontsOk) {
-            excel= await unoconv.convertAsync(excel, 'xlsx');  console.log("! 1.5:", timerTick(),"ms");
+            excel= await unoconv.convertAsync(excel, 'xlsx');  console.log("! 1.5:", timerTick(),"ms", "  bufSize=",excel.length);
             bookInfo= await parseExcel(excel);  console.log("! 2:", timerTick(),"ms");
         }
         //let excelInfo0 = await ExcelToMapCell(excel);  console.log("! 1:", timerTick(),"ms");
@@ -240,18 +242,20 @@ export function fApi()
 
         let excelInfo= bookInfo.keysInfo;
 
-        excelSimple ??= await bookInfo.export(true);  console.log("! 3:", timerTick(),"ms");
+        excelSimple ??= await bookInfo.export(true);  console.log("! 3:", timerTick(),"ms", "  bufSize:",excelSimple.length);
 
-        let pdfKeyBuf : Buffer= await unoconv.convertAsync(excel, 'pdf');  console.log("! 4:", timerTick(),"ms");
+        let pdfKeyBuf : Buffer= await unoconv.convertAsync(excel, 'pdf')
+            .catch((e)=>{ console.error(e);  throw e; });  console.log("! 4:", timerTick(),"ms", "  bufSize:",pdfKeyBuf.length);
+
+        const pdfKeyMap = await PDFToMapKey(pdfKeyBuf);  console.log("! 6:", timerTick(),"ms","  keys count:",Object.keys(pdfKeyMap).length);
         //
         //excelSimple= await ExcelRemoveKeys(excel);  console.log("! 4:", timerTick(),"ms");
 
-        const pdfCleanBuf = await unoconv.convertAsync(excelSimple, 'pdf'); console.log("! 5:", timerTick(),"ms");
+        const pdfCleanBuf = await unoconv.convertAsync(excelSimple, 'pdf'); console.log("! 5:", timerTick(),"ms", "  bufSize:",pdfCleanBuf.length);
 
         //const pdfCleanBuf= await removeKeysFromPDF(pdfKeyBuf);
         //await fs.promises.writeFile(aResult +"testNew"+name+".pdf", pdfCleanBuf)
         //return;
-        const pdfKeyMap = await PDFToMapKey(pdfKeyBuf);  console.log("! 6:", timerTick(),"ms");
 
         //_mapPDFKey[name] = pdfKeyBuf;
         //_mapPDF[name] = pdfCleanBuf;
@@ -403,7 +407,8 @@ fs.writeFileSync('example.pdf', pdfBytes);*/
             let obj :tMapExcel= {};
             for(let [key, data] of Object.entries(_map)) obj[key]= data.excelData;
             return obj;
-        })()
+        })(),
+        disconnect() { unoconv.stopListener(); }
     }
 }
 
