@@ -101,7 +101,7 @@ namespace unoconv {
             stdout.push(data);
         });
 
-        child.stderr!.on('data', function (data) { console.log("! stderr.data");
+        child.stderr!.on('data', function (data) { console.log("! stderr.data",data);
             stderr.push(data);
         });
 
@@ -119,7 +119,7 @@ namespace unoconv {
                 console.log("ok");
             }
         });
-        child.on('error', (err) => callback?.(new Error(err.message))); console.log("! error");
+        child.on('error', (err) => { callback?.(new Error(err.message)); console.log("! error ",err); });
         return child;
     }
 
