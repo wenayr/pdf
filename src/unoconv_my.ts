@@ -101,14 +101,17 @@ namespace unoconv {
             stdout.push(data);
         });
 
-        child.stderr!.on('data', function (data) { console.log("! stderr.data",data);
+        child.stderr!.on('data', function (data) { console.log("! stderr.data",data.toString());
             stderr.push(data);
         });
 
         child.on('exit', function () { console.log("! exit");
 
             if (stderr.length) {
-                return callback?.(new Error(Buffer.concat(stderr).toString()));
+                let str= Buffer.concat(stderr).toString();
+                console.log("Error str on exit:", str);
+                //if (str.includes("Deprecation Warning"))
+                return callback?.(new Error(str));
             }
 
             callback?.(null, Buffer.concat(stdout));
