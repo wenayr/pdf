@@ -242,7 +242,7 @@ export function fApi()
 
         excelSimple ??= await bookInfo.export(true);  console.log("! 3:", timerTick(),"ms");
 
-        let pdfKeyBuf : Buffer= await unoconv.convertAsync(excel, 'pdf');  console.log("! 4:", timerTick(),"ms");
+        let pdfKeyBuf : Buffer= await unoconv.convertAsync(excel, 'pdf').catch((e)=>{ console.error(e);  throw e; });  console.log("! 4:", timerTick(),"ms");
         //
         //excelSimple= await ExcelRemoveKeys(excel);  console.log("! 4:", timerTick(),"ms");
 
