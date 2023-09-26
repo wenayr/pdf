@@ -119,7 +119,7 @@ namespace unoconv {
                 console.log("ok");
             }
         });
-        child.on('error', (err) => { callback?.(new Error(err.message)); console.log("! error ",err); });
+        child.on('error', (err) => { console.log("! error ",err);  callback?.(new Error(err.message)); });
         return child;
     }
 
