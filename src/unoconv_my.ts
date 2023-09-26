@@ -101,7 +101,7 @@ namespace unoconv {
             stdout.push(data);
         });
 
-        child.stderr!.on('data', function (data) { console.log("! stderr.data",data.toString());
+        child.stderr!.on('data', function (data) { //console.log("! stderr.data",data.toString());
             stderr.push(data);
         });
 
@@ -109,9 +109,12 @@ namespace unoconv {
 
             if (stderr.length) {
                 let str= Buffer.concat(stderr).toString();
-                console.log("Error str on exit:", str);
-                //if (str.includes("Deprecation Warning"))
-                return callback?.(new Error(str));
+                if (str.includes("DeprecationWarning"))
+                    console.warn(str);
+                else {
+                    //console.log("Error str on exit:", str);
+                    return callback?.(new Error(str));
+                }
             }
 
             callback?.(null, Buffer.concat(stdout));
@@ -122,7 +125,7 @@ namespace unoconv {
                 console.log("ok");
             }
         });
-        child.on('error', (err) => { console.log("! error ",err);  callback?.(new Error(err.message)); });
+        child.on('error', (err) => { console.log("! error ",err);  callback?.(err); });
         return child;
     }
 
