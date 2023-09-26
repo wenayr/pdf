@@ -1,5 +1,5 @@
 import {PORT} from "./index";
-import {tKeyData, tRequest} from "./interface";
+import {tKeyData, tRequest,tRequestAddTemplate} from "./interface";
 import fetch from "node-fetch";
 import * as addr from "./address";
 //import * as fetchh from "node-fetch";
@@ -32,9 +32,9 @@ export async function test() {
                 //excelSimple: "test4pgruzNo.xlsx",
                 //excel: "4pgruz_key_.xlsx",
                 excel: "test.xlsx",
-                excelSimple: "4pgruz.xlsx",
+                excelSimple: undefined, //"4pgruz.xlsx",
                 name: "4p"
-            } as { excel: string, name: string, excelSimple: string })
+            } satisfies tRequestAddTemplate)
         })
             .then(response => response.json())
             .catch(e => {

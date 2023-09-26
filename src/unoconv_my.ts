@@ -25,14 +25,17 @@ namespace unoconv {
         }
     }
 
+    const isWindows= process.platform=="win32"; //os.platform()=='win32';
 
-    let paths = unoconv.getLibreOfficePaths();
+    if (isWindows) {
+        let paths = unoconv.getLibreOfficePaths();
 
-    process.env["PATH"]+= ";"+ paths.join(";");
+        process.env["PATH"]+= ";"+ paths.join(";");
+    }
     //console.log(process.env["PATH"]);
 
 
-    const defaultRunCommand = `python unoconv.py`; //"c:/OSPanel/domains/pdf/src/unoconv.py`;//./unoconv.py`;
+    const defaultRunCommand =  isWindows ? `python unoconv.py` : 'python3 unoconv.py'; //"c:/OSPanel/domains/pdf/src/unoconv.py`;//./unoconv.py`;
 
     export type Callback = (error: Error|null, output?: Buffer|undefined) => void;
 

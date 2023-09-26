@@ -7,7 +7,7 @@
 import fs from "fs";
 
 import {createPDF} from "./createPDF";
-import {tCellInfo,tKeyData,tExcel, tMapExcel, tMapPDF, tObjImage, tPFD, tRequest,tPDFInfo} from "./interface";
+import {tCellInfo,tKeyData,tExcel, tMapExcel, tMapPDF, tObjImage, tPFD, tRequest,tPDFInfo,tRequestAddTemplateByBuffer} from "./interface";
 import {PDFDocument, PDFImage} from "pdf-lib";
 import {aFont, aImage,aResult} from "./address";
 
@@ -217,7 +217,7 @@ export function fApi()
     //const _mapPDF: tMapPDF = {}
     //const _mapPDFKey: tMapPDF = {}
 
-    const addTemplateExcel = async ({excelSimple, excel, name}: {excel: Buffer, name: string, excelSimple?: Buffer}) => {
+    const addTemplateExcel = async ({excelSimple, excel, name}: tRequestAddTemplateByBuffer) => {
         console.log("! 0");
         let t= Date.now();
         function timerTick() { let delta= Date.now()-t;  t= Date.now();  return delta; }
@@ -272,8 +272,13 @@ export function fApi()
 
         // для проверки сохранит промежуточные PDF
         if (1) {
-            fs.promises.writeFile(aResult +"test"+name+".pdf", pdfCleanBuf)
-            fs.promises.writeFile(aResult +"testKey"+name+".pdf", pdfKeyBuf)
+            try {
+                let task1= fs.promises.writeFile(aResult +"test"+name+".pdf", pdfCleanBuf)
+                let task2= fs.promises.writeFile(aResult +"testKey"+name+".pdf", pdfKeyBuf)
+            }
+            catch(e) {
+                console.error(e);
+            }
         }
 
         await saveTemplate(data).catch(e=>console.error("Failed to save template "+name+":",e));

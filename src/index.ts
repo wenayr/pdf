@@ -12,7 +12,7 @@ import cors from 'cors';
 //import * as express from 'express';
 import express from 'express';
 
-import {tRequest} from "./interface";
+import {tRequest,tRequestAddTemplate,tRequestAddTemplateByBuffer} from "./interface";
 
 import {aExcel, aFont, aImage, aResult} from "./address";
 
@@ -47,44 +47,38 @@ export function start() {
       принимает объект:
       {
         name: string  - название  шаблона
-        excel: Buffer  - файл шаблон эксель с ключами
-        excelSimple: Buffer  - файл шаблон эксель без ключей
+        excel: string|Buffer  - файл шаблон эксель с ключами (либо буфер)
+        excelSimple: string|Buffer|undefined  - файл шаблон эксель без ключей (либо буфер)
       }
      */
-    app.post('/addTemplateExcel2', async (req, res) => {
-
-        const data = req.body as {excel: Buffer, name: string, excelSimple?: Buffer}
-        try {
-            console.log("add excel2 " + data.excel + " " + data.name)
-            await api.addTemplateExcel(data)
-            res.status(200)
-                .json({status: "ok"})
-        } catch (e) {
-            res.status(404)
-                .json({status: e})
-        }
-    }, )
     app.post('/addTemplateExcel', async (req, res) => {
-        const data = req.body as {excel: string, name: string, excelSimple?: string}
-        try {
-            console.log("add excel " + data.excel + " " + data.name)
-            let data2 = {
-                name: data.name,
-                excel: await fs.promises.readFile(aExcel + data.excel),
-                excelSimple: data.excelSimple ? await fs.promises.readFile(aExcel + data.excelSimple) : undefined
-            }
-            console.log("ok");
-            await api.addTemplateExcel(data2)
+        const data = req.body as tRequestAddTemplate;
+        let str = {
+            name: data.name,
+            excel: data.excel && typeof(data.excel)=="object" ? "buffer" : data.excel,
+            excelSimple: data.excelSimple && typeof(data.excelSimple)=="object" ? "buffer" : data.excelSimple
+        } satisfies { [key in keyof tRequestAddTemplate] : string };
+        console.log("addTemplateExcel",str);
 
+         async function toFileBuffer(val :unknown, key :keyof tRequestAddTemplate) {
+            if (typeof(val)=="string") return await fs.promises.readFile(aExcel + val);
+            if (typeof(val)=="object" && val) return val as Buffer;
+            throw "wrong data.key "+key;
+        }
+        try {
+            let data2 : tRequestAddTemplateByBuffer = {
+                name: data.name,
+                excel: await toFileBuffer(data.excel, "excel"),
+                excelSimple: data.excelSimple ? await toFileBuffer(data.excelSimple, "excelSimple") : undefined
+            }
+            await api.addTemplateExcel(data2)
             res.status(200)
                 .json({status: "ok"})
         } catch (e) {
             res.status(404)
                 .json({status: e})
-            console.error(e);
         }
     }, )
-
 
     /*
      точка dataToPDF

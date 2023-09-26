@@ -47,6 +47,22 @@ export type tObjectString = {
 export type tKeyData = {
     [key: string]: string | tObjectImage | tObjectString
 }
+
+
+export type tRequestAddTemplate = {
+    name: string,
+    excel: string|Buffer,
+    excelSimple?: string|Buffer
+};
+
+export type tRequestAddTemplateByBuffer = {
+    name: string,
+    excel: Buffer,
+    excelSimple?: Buffer
+};
+
+
+
 export type tRequest = {
     // тия шаблона
     [nameTemplate: string]: tKeyData[]|tKeyData
