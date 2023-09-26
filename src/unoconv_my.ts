@@ -53,16 +53,6 @@ namespace unoconv {
 
     export function convert(fileOrBuffer :string|Buffer, outputFormat :string, optionsOrCallback :Options|Callback, callback? :Callback) {
 
-
-        if (0) {
-            console.time("*");
-            return childProcess.execFile("python")
-            .on("exit", ()=>console.timeLog("*","exit"))
-            .on("close", ()=>console.timeLog("*","close"))
-            .on("spawn", ()=>console.timeLog("*","spawn"))
-            .on("error", ()=>console.timeLog("*","error"))
-            .on("disconnect", ()=>console.timeLog("*","disconnect"))
-        }
         let stdout : Uint8Array[] = [];
         let stderr : Uint8Array[] = [];
         let options : Options;
@@ -102,20 +92,20 @@ namespace unoconv {
         let bin = options.runCommand ?? defaultRunCommand;
 
         //let buf= fs.readFileSync(file);
-
+        console.log("! 1");
         let child = childProcess.spawn(bin, args, { shell: true /*, stdio: buf*/ });//, function (err, stdout, stderr) {
         //let child= childProcess.exec(bin+" "+args.join(" "));
         //child.stdin.write(buf);
-
-        child.stdout!.on('data', function (data) {
+        console.log("! 2");
+        child.stdout!.on('data', function (data) { console.log("! stdout.data");
             stdout.push(data);
         });
 
-        child.stderr!.on('data', function (data) {
+        child.stderr!.on('data', function (data) { console.log("! stderr.data");
             stderr.push(data);
         });
 
-        child.on('exit', function () {
+        child.on('exit', function () { console.log("! exit");
 
             if (stderr.length) {
                 return callback?.(new Error(Buffer.concat(stderr).toString()));
@@ -123,10 +113,13 @@ namespace unoconv {
 
             callback?.(null, Buffer.concat(stdout));
 
-            if (typeof(fileOrBuffer)=="object")
+            if (typeof(fileOrBuffer)=="object") {
+                console.log("removing");
                 fs.unlinkSync(file);
+                console.log("ok");
+            }
         });
-        child.on('error', (err) => callback?.(new Error(err.message)));
+        child.on('error', (err) => callback?.(new Error(err.message))); console.log("! error");
         return child;
     }
 
