@@ -5,7 +5,7 @@ import mime from "mime";
 import fs from "fs";
 import * as os from "os";
 import path from "path";
-import * as console from "console";
+import * as console from "console"; import {waitForProcessRunAsync} from "./processHelper";
 
 
 
@@ -44,6 +44,7 @@ namespace unoconv {
         port :number;
         server :string;
     }>;
+
 
     /**
     * Convert a document.
@@ -92,12 +93,12 @@ namespace unoconv {
         let bin = options.runCommand ?? defaultRunCommand;
 
         //let buf= fs.readFileSync(file);
-        console.log("! 1");
+        //console.log("! 1");
         let child = childProcess.spawn(bin, args, { shell: true /*, stdio: buf*/ });//, function (err, stdout, stderr) {
         //let child= childProcess.exec(bin+" "+args.join(" "));
         //child.stdin.write(buf);
-        console.log("! 2");
-        child.stdout!.on('data', function (data) { console.log("! stdout.data");
+        //console.log("! 2");
+        child.stdout!.on('data', function (data) { //console.log("! stdout.data");
             stdout.push(data);
         });
 
@@ -105,7 +106,7 @@ namespace unoconv {
             stderr.push(data);
         });
 
-        child.on('exit', function () { console.log("! exit");
+        child.on('exit', function () { //console.log("! exit");
 
             if (stderr.length) {
                 let str= Buffer.concat(stderr).toString();
@@ -120,7 +121,7 @@ namespace unoconv {
             callback?.(null, Buffer.concat(stdout));
 
             if (typeof(fileOrBuffer)=="object") {
-                console.log("removing");
+                console.log("removing temp file");
                 fs.unlinkSync(file);
                 console.log("ok");
             }
@@ -129,16 +130,20 @@ namespace unoconv {
         return child;
     }
 
-
+    let _conversionTask = Promise.resolve(Buffer.from([])); //: Promise<void>|undefined;
 
     export async function convertAsync(fileOrBuffer :string|Buffer, outputFormat :string, options? :Options) : Promise<Buffer> {
-        return new Promise((resolve, reject)=>{
+        await _startListenerTask;
+        // ждём завершения прошлой задачи, т.к. многопоточные запросы невозможны (soffice выдаёт ошибку)
+        return _conversionTask= _conversionTask.then( ()=>new Promise((resolve, reject)=>{
+           //console.log("!!!!! in")
            convert(fileOrBuffer, outputFormat, options ?? {},
-           (err, output)=> err ? reject(err) : resolve(output!))
-        });
+           (err, output)=> err ? reject(err) : resolve(output!)
+        )}));
     }
 
-
+    let _startListenerTask : Promise<void>|undefined;
+    let _listener : ChildProcess|undefined;
     /**
     * Start a listener.
     */
@@ -152,9 +157,28 @@ namespace unoconv {
 
         let bin= options?.runCommand ?? defaultRunCommand;
         //let python= options?.pythonPath ?? "python";
-
-        return childProcess.spawn(bin, args, { shell: true });
+        //setTimeout.__promisify__(100).
+        //
+        // then(waitForProcessRunAsync('soffice.exe');
+        let _resolve : ()=>void, _reject: (e :Error)=>void;
+        let waitingTask= new Promise<void>((resolve, reject)=>{ _resolve= resolve; _reject=reject; });
+        // после запуска листенера будем ждать появления процесса soffice
+        if (1)
+        _startListenerTask= (async()=>{
+            await waitingTask;
+            console.log("start waiting for soffice.exe");
+            let res= await waitForProcessRunAsync('soffice.exe', 1000, 50000);
+            console.log("finish waiting for soffice.exe.  Result="+res);
+            _startListenerTask=undefined;
+        })();
+        //_task= new Promise((resolve, reject)=>{ _resolve=resolve; _reject=reject; });
+        //_task= new Promise())
+        return _listener= childProcess.spawn(bin, args, { shell: true })
+            .on("spawn", ()=>_resolve())
+            .on("error", (e)=>_reject(new Error("listener error: "+e.message)))
     }
+    // Остановка листенера (не работает при завершении из текущего потока)
+    export function stopListener() { _listener?.kill("SIGINT");  _listener=undefined; } //_listener?.kill();
 
 
     export type Format = {

@@ -7,23 +7,99 @@ import unoconv from "./unoconv_my";
 ////@ts-ignore
 //import unoconv from 'node-unoconv';
 
-import childProcess , {ChildProcess} from 'child_process';
+import childProcess , {ChildProcess} from 'child_process'; import {execAndWaitForSpawn, isProcessRunning,waitForProcessRunAsync} from "./processHelper";
 
 //const unoconvRunCommand = `python "c:/OSPanel/domains/pdf/src/unoconv.py"`;//./unoconv.py`;
 
 
 
-console.log(typeof null);
+//isRunning('myprocess.exe', 'myprocess', 'myprocess').then((v) => console.log(v))
+
 
 let prefix= "--";
 console.time(prefix);
 
-let proc= childProcess.spawn("python3 unoconv.py", { shell: true })
-    .on("message",(code,signal)=>{ console.timeLog(prefix,"message ",signal); })
-    .on("spawn",()=>{ console.timeLog(prefix, "spawn"); })
-    .on("error",()=>{ console.timeLog(prefix, "error"); })
-    .on("exit",()=>{ console.timeLog(prefix, "exit"); })
-    .on("close",()=>{ console.timeLog(prefix, "close"); })
+const defaultConsoleLog= console.log;
+// const defaultConsoleTimeLog= console.timeLog;
+//
+let _timeLogRunning= false;
+
+console.log= (...args :any[])=> _timeLogRunning ? defaultConsoleLog(...args) : (()=>{ _timeLogRunning= true;  console.timeLog(prefix, ...args);  _timeLogRunning=false; })();
+//console.timeLog= (prefix, ...args :any[])=> _timeLogRunning ? defaultConsoleTimeLog
+
+//await unoconv.convertAsync("resource/excel/test.xlsx", "pdf");
+//unoconv.listen();
+//console.timeLog(prefix, "finish");
+
+async function check(id :string) {
+    console.timeLog(prefix,id);
+    return 0;
+    let is1= await isProcessRunning('soffice.exe');
+    //let is2= await isRunning('soffice.bin');
+    console.timeLog(prefix,id, "exe:",is1);//, "bin:",is2);
+}
+
+
+// await check("1");
+// await check("2");
+//await waitForSpawnExec("python unoconv.py --listener");
+//console.timeLog(prefix,"finish");
+
+if (0) {
+    //let proc= childProcess.spawn("python unoconv.py -fpdf resource/excel/test.xlsx", { shell: true })
+    let proc= childProcess.spawn("python unoconv.py --listener", { shell: true })
+        .on("message",(code,signal)=>{ check("message"); })
+        .on("spawn",()=>{ check("spawn"); })
+        .on("error",()=>{ check("error"); })
+        .on("exit",()=>{ check("exit"); })
+        .on("close",()=>{ check("close"); })
+
+    check("first");
+}
+
+//childProcess.spawn("python unoconv.py --listener", { shell: true });
+
+//import terminate from "terminate";
+
+// let proc= childProcess.spawn("python unoconv.py -l", {shell: true, /*detached: true*/ });
+//
+// waitForProcessRunAsync("soffice.exe").then(()=>console.log("running!"));
+
+await execAndWaitForSpawn("python unoconv.py -l");
+console.log("Spawned");
+import process from "process"
+if (0)
+await setTimeout(()=>{
+    //proc.kill("SIGTERM");
+    //proc.kill("SIGINT");
+    //proc.kill();
+    //proc.send()
+    //if (0) process.kill(-proc.pid!);//, "SIGHUP");//, 'SIGINT');
+    //if (1) process.exit(0);
+    //proc.stdout.push(null);
+    //proc.
+    // if (0)
+    // if (proc.pid)
+    //     terminate(proc.pid);
+    //proc.disconnect();
+    console.log("killed");
+}, 11000);
+
+
+if (0) {
+    //import ps from "ps-node";
+
+    let ok= await isProcessRunning("soffice.exe");
+    console.log(ok);
+
+    //ps.lookup({command: "soffice.exe"}, (err,list)=> err ? console.log("not found") : console.log("ok ",list));
+}
+
+async function f() {
+
+    await waitForProcessRunAsync('soffice.exe');
+//console.timeLog(prefix,"running");//
+}
 
 
 
@@ -56,7 +132,6 @@ if (0) {
 
     let prefix= "--";
     console.time(prefix);
-
 
 
     let res= unoconv.listen()

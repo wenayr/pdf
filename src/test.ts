@@ -5,6 +5,7 @@ import * as addr from "./address";
 //import * as fetchh from "node-fetch";
 //const fetch= fetchh.default;
 
+let _time= Date.now();
 
 //let PORT= 4051;
 
@@ -117,7 +118,7 @@ export async function test() {
 
     const r3= await fetch(url + "/stop");
 
-    console.log("stop: ",r3.ok);
+    console.log("stop: ",r3.ok, "   elapsed total ",((Date.now()-_time)/1000).toFixed(1)," s");
 
     // const r2 = await fetch("http://localhost:" + PORT + "/addTemplateExcel", {
     //     method: 'POST',
