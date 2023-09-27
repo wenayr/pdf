@@ -56,12 +56,13 @@ export async function createPDF(
     }
 
     pdfDocCopy.registerFontkit(fontkit);
+
     const customFont = {
-        origin: await pdfDocCopy.embedFont(fonts.origin.buffer),
-        italic: await pdfDocCopy.embedFont(fonts.italic.buffer),//await pdfDocCopy.embedFont(fonts.italic),
-        bold: await pdfDocCopy.embedFont(fonts.bold.buffer),
-        boldItalic:  await pdfDocCopy.embedFont(fonts.boldItalic.buffer),//await pdfDocCopy.embedFont(fonts.boldItalic),
-    };
+        origin: await pdfDocCopy.embedFont(fonts.origin.buffer,{ subset: true }),
+        italic: await pdfDocCopy.embedFont(fonts.italic.buffer,{ subset: true }),//await pdfDocCopy.embedFont(fonts.italic),
+        bold: await pdfDocCopy.embedFont(fonts.bold.buffer,{ subset: true }),
+        boldItalic:  await pdfDocCopy.embedFont(fonts.boldItalic.buffer,{ subset: true }),//await pdfDocCopy.embedFont(fonts.boldItalic),
+    };//
     type kCustomFont = keyof typeof customFont
 
 
@@ -257,6 +258,6 @@ export async function createPDF(
             }
         }
     }
-    return pdfDocCopy
+    return pdfDocCopy;
 }
 

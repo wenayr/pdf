@@ -172,6 +172,7 @@ export function start() {
                     .catch((e)=>{
                         throw " result.save: "+JSON.stringify(e)
                     });
+                console.log("Result buffer:",arrBytes," bytes");
                 await fs.promises.writeFile(aResult + name, arrBytes)
                     .catch((e)=>{
                         throw "writeFile: "+JSON.stringify(e)
