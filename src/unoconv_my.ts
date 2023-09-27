@@ -52,16 +52,17 @@ namespace unoconv {
     export function convert(fileOrBuffer :string|Buffer, outputFormat :string, options :Options, callback :Callback) : ChildProcess;
     export function convert(fileOrBuffer :string|Buffer, outputFormat :string, callback :Callback) : ChildProcess;
 
-    export function convert(fileOrBuffer :string|Buffer, outputFormat :string, optionsOrCallback :Options|Callback, callback? :Callback) {
+    export function convert(fileOrBuffer :string|Buffer, outputFormat :string, optionsOrCallback :Options|Callback, callback_? :Callback) {
 
         let stdout : Uint8Array[] = [];
         let stderr : Uint8Array[] = [];
         let options : Options;
         if (typeof optionsOrCallback=="function") {
-            callback = optionsOrCallback;
+            callback_ = optionsOrCallback;
             options = {};
         }
-        else options= optionsOrCallback;
+        else { options= optionsOrCallback;  callback_= callback_!; }
+        const callback = callback_ satisfies Callback;
 
         let args = [
             '-f' + outputFormat,
@@ -110,8 +111,16 @@ namespace unoconv {
 
             if (stderr.length) {
                 let str= Buffer.concat(stderr).toString();
-                if (str.includes("DeprecationWarning"))
+                if (str.includes("DeprecationWarning")) {
                     console.warn(str);
+                    if (str.includes("Error: Unable to connect or start own listener. Aborting.")) {
+                        let optionsExt= { recurs: 0, ...options };
+                        if (optionsExt.recurs++ < 2) {  // повторяем до двух раз
+                            console.log("Repeat run exec");
+                            return convert(fileOrBuffer, outputFormat, options, callback);
+                        }
+                    }
+                }
                 else {
                     //console.log("Error str on exit:", str);
                     return callback?.(new Error(str));
