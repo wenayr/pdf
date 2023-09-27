@@ -222,8 +222,8 @@ export function fApi()
         let t= Date.now();
         function timerTick() { let delta= Date.now()-t;  t= Date.now();  return delta; }
 
-        // console.warn("Дополнительный вызов для отладки");
-        //     unoconv.convertAsync(excel, 'pdf').then(res=>console.log("! 1.2:", timerTick(),"ms   bufLen=",res.length));
+         // console.warn("Дополнительный вызов для отладки");
+         //     unoconv.convertAsync(excel, 'pdf').then(res=>console.log("! 1.2:", timerTick(),"ms   bufLen=",res.length));
 
         let bookInfo= await parseExcel(excel);  console.log("! 1:", timerTick(),"ms");
         let fontsOk= Object.values(bookInfo.keysInfo).length==0 ||  Object.entries(bookInfo.keysInfo).some(([key,infos])=>infos.find(info=> !info.font.strikeThrough));

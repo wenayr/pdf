@@ -5,9 +5,10 @@ let _runTaskCache : { [name :string] : Promise<boolean>|undefined } = { };
 
 
 export async function isProcessRunning(win :string, mac?: string, linux?: string) : Promise<boolean> {
-
-    mac ??= win.substring(0,win.lastIndexOf("."));
-    linux ??= win.substring(0,win.lastIndexOf("."));
+    mac ??= win;
+    linux ??= win;
+    //mac ??= win.substring(0,win.lastIndexOf("."));
+    //linux ??= win.substring(0,win.lastIndexOf("."));
     const plat = process.platform;
     const proc = plat=='win32' ? win : plat=='darwin' ? mac : plat=='linux' ? linux : undefined;
     const cmd =
@@ -38,12 +39,19 @@ export async function isProcessRunning(win :string, mac?: string, linux?: string
     })
 }
 
+type NameByPlatform = Readonly<{ win :string, linux?: string, mac? :string }>;
 
-
-export async function waitForProcessRunAsync(name :string, step_ms=500, timeout_ms= 10000) {
-    if (process.platform !="win32")
-        name = name.substring(0,name.lastIndexOf("."));
+export async function waitForProcessRunAsync(name :string|NameByPlatform, step_ms=500, timeout_ms= 10000) {
+    let os= process.platform;
+    if (typeof(name)=="object") {
+        let nameByOs= os=="win32" ? name.win : os=="linux" ? name.linux : os=="darwin" ? name.mac : undefined;
+        name= nameByOs ?? name.win;
+    }
+    let nameStr :string = name;
+    // if (process.platform !="win32")
+    //     name = name.substring(0,name.lastIndexOf("."));
     return new Promise((resolve,reject)=>{
+        let name= nameStr;
         let startTime= Date.now();
         async function runCheck() {
             console.log(`check for running "${name}" ...`);

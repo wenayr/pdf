@@ -166,9 +166,9 @@ namespace unoconv {
         if (1)
         _startListenerTask= (async()=>{
             await waitingTask;
-            console.log("start waiting for soffice.exe");
-            let res= await waitForProcessRunAsync('soffice.exe', 1000, 50000);
-            console.log("finish waiting for soffice.exe.  Result="+res);
+            console.log("start waiting for 'soffice.bin'");
+            let res= await waitForProcessRunAsync('soffice.bin', 1000, 10000);
+            console.log("finish waiting for 'soffice.bin'.  Result="+res);
             _startListenerTask=undefined;
         })();
 
