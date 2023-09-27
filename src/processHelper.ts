@@ -41,6 +41,8 @@ export async function isProcessRunning(win :string, mac?: string, linux?: string
 
 
 export async function waitForProcessRunAsync(name :string, step_ms=500, timeout_ms= 10000) {
+    if (process.platform !="win32")
+        name = name.substring(0,name.lastIndexOf("."));
     return new Promise((resolve,reject)=>{
         let startTime= Date.now();
         async function runCheck() {

@@ -171,6 +171,8 @@ namespace unoconv {
             console.log("finish waiting for soffice.exe.  Result="+res);
             _startListenerTask=undefined;
         })();
+
+        console.log("Start unoconv listener");
         //_task= new Promise((resolve, reject)=>{ _resolve=resolve; _reject=reject; });
         //_task= new Promise())
         return _listener= childProcess.spawn(bin, args, { shell: true })
